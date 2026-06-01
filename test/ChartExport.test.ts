@@ -44,6 +44,39 @@ describe("ChartExport — equity/PnL SVG", () => {
     expect(svg).toContain("<polyline");
   });
 
+  test("equityComparisonSvg overlays multiple curves with a legend", () => {
+    const svg = ChartExport.equityComparisonSvg(
+      [
+        { label: "vip 0", startBalance: 1000, finalBalance: 900, equity: series(900).equity },
+        { label: "vip 9", startBalance: 1000, finalBalance: 1300, equity: series(1300).equity },
+      ],
+      { title: "Fee comparison" }
+    );
+    expect(svg.startsWith("<?xml")).toBe(true);
+    expect(svg).toContain("Fee comparison");
+    expect(svg).toContain("vip 0");
+    expect(svg).toContain("vip 9");
+    // One polyline per curve (at least 2).
+    expect((svg.match(/<polyline/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("handles huge equity curves without stack overflow and stays small", () => {
+    const equity = Array.from({ length: 250_000 }, (_, i) => ({
+      time: 1_700_000_000_000 + i * 1000,
+      balance: 1000 + Math.sin(i / 1000) * 500,
+    }));
+    const big = { startBalance: 1000, finalBalance: 1400, equity };
+    const single = ChartExport.equitySvg(big);
+    expect(single).toContain("<polyline");
+    const cmp = ChartExport.equityComparisonSvg([
+      { label: "a", ...big },
+      { label: "b", ...big },
+    ]);
+    expect(cmp).toContain("<polyline");
+    // Downsampled → the point count (commas in polylines) is bounded.
+    expect((cmp.match(/,/g) || []).length).toBeLessThan(20_000);
+  });
+
   test("writeEquitySvg writes a file and creates parent dirs", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "chart-"));
     const file = path.join(dir, "nested", "pnl.svg");

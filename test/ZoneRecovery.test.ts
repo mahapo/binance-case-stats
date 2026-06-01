@@ -230,6 +230,35 @@ describe("Recovery — random initial side", () => {
     shortStrat.onSignal(10000, 0);
     expect(shortStrat.side).toBe("sell");
   });
+
+  test("a seed makes the random side reproducible (and seeds differ)", () => {
+    const opts = {
+      symbol: "BTC/USDT",
+      ratio: 2,
+      leverage: 100,
+      gapPercent: 30,
+      baseQuantity: 0.001,
+      maxSteps: 4,
+    };
+    // Drive several series, recording the chosen side each time.
+    const sidesFor = (seed: number) => {
+      const strat = new Recovery({ ...opts, seed });
+      const sides: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        strat.onSignal(10000, 0, 1000);
+        sides.push(strat.side);
+        strat.onTakeProfit(strat.currentOrder!); // close, ready for next
+      }
+      return sides;
+    };
+
+    const a = sidesFor(1337);
+    const b = sidesFor(1337);
+    expect(a).toEqual(b); // same seed → identical sequence
+    expect(a).toContain("buy");
+    expect(a).toContain("sell"); // genuinely mixed
+    expect(sidesFor(42)).not.toEqual(a); // different seed → different sequence
+  });
 });
 
 // ===========================================================================

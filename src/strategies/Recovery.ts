@@ -1,4 +1,5 @@
 import { OrderFutures, FeeSchedule, LeverageBracket } from "../models";
+import { mulberry32 } from "../utils/rng";
 import { StrategyBase } from "./StrategyBase";
 import { ZoneRecovery, Side } from "./ZoneRecovery";
 
@@ -51,6 +52,8 @@ export interface RecoveryOptions {
   maker?: boolean;
   /** RNG for the initial side (injectable for deterministic tests). */
   rng?: () => number;
+  /** Seed for a reproducible random side (used when no `rng`/`forceSide`). */
+  seed?: number;
   /** Force the initial side (overrides rng); handy for tests. */
   forceSide?: Side;
 }
@@ -103,14 +106,17 @@ export class Recovery extends StrategyBase {
         "provide maxDrawdownPercent, riskPercent or baseQuantity"
       );
     }
+    // Spread first, then resolve managed fields with ?? so an explicit
+    // `undefined` (e.g. feeSchedule) still falls back to its default.
     this.options = {
-      lossTakingPolicy: "take-loss",
+      ...options,
+      lossTakingPolicy: options.lossTakingPolicy ?? "take-loss",
       feeSchedule: options.feeSchedule ?? FeeSchedule.vip(options.vipLevel ?? 0),
       leverageBracket: options.leverageBracket ?? new LeverageBracket(),
-      maker: false,
-      rng: Math.random,
-      forceSide: options.forceSide,
-      ...options,
+      maker: options.maker ?? false,
+      rng:
+        options.rng ??
+        (options.seed != null ? mulberry32(options.seed) : Math.random),
     };
   }
 
