@@ -54,8 +54,9 @@ export class Backtester {
   }
 
   private onTick(tick: Tick): void {
-    if (!this.strategy.hasActiveSeries) {
-      // Size the next series off the live balance (risk-% sizing compounds).
+    if (!this.strategy.hasActiveSeries && this.balance > 0) {
+      // Size the next series off the live balance (sizing compounds). Once the
+      // balance is gone we stop opening series — it never goes negative.
       this.strategy.onSignal(tick.price, tick.time, this.balance);
     }
     this.settle(tick);

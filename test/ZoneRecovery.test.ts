@@ -293,7 +293,7 @@ describe("Recovery — risk-based sizing & fee tier", () => {
     );
   });
 
-  test("constructor requires baseQuantity or riskPercent", () => {
+  test("constructor requires a sizing mode", () => {
     expect(
       () =>
         new Recovery({
@@ -303,7 +303,7 @@ describe("Recovery — risk-based sizing & fee tier", () => {
           gapPercent: 30,
           maxSteps: 4,
         } as any)
-    ).toThrow("provide baseQuantity or riskPercent");
+    ).toThrow("provide maxDrawdownPercent, riskPercent or baseQuantity");
   });
 
   test("the constant-gross invariant still holds with risk-based sizing", () => {
@@ -335,5 +335,66 @@ describe("Recovery — risk-based sizing & fee tier", () => {
         9
       );
     }
+  });
+});
+
+// ===========================================================================
+// Drawdown-based sizing & position-bracket cap
+// ===========================================================================
+describe("Recovery — drawdown sizing & position bracket", () => {
+  test("maxDrawdownPercent: a fully-lost series costs exactly that % of balance", () => {
+    const balance = 1000;
+    const maxDrawdownPercent = 40;
+    const strat = new Recovery({
+      symbol: "BTC/USDT",
+      ratio: 2,
+      leverage: 50, // bracket limit 12M ≫ our size → not capped
+      gapPercent: 30,
+      maxDrawdownPercent,
+      maxSteps: 4,
+      forceSide: "buy",
+    });
+
+    strat.onSignal(10000, 0, balance);
+    for (let s = 0; s < 4; s++) strat.onStopLoss(strat.currentOrder!); // all stop-losses
+
+    const series = strat.series[0];
+    expect(series.outcome).toBe("loss");
+    // Worst-case loss = maxDrawdownPercent% of balance.
+    expect(series.grossProfit).toBeCloseTo(-(maxDrawdownPercent / 100) * balance, 6);
+  });
+
+  test("the last hedge is capped to the leverage's position bracket", () => {
+    // Huge balance/maxSteps would blow past the 150× bracket (300,000 USDT).
+    const strat = new Recovery({
+      symbol: "BTC/USDT",
+      ratio: 2,
+      leverage: 150, // bracket limit = 300,000 USDT
+      gapPercent: 10,
+      maxDrawdownPercent: 40,
+      maxSteps: 12,
+      forceSide: "buy",
+    });
+
+    strat.onSignal(10000, 0, 1_000_000);
+    const last = strat.currentOrders[strat.currentOrders.length - 1];
+    expect(last.amount).toBeCloseTo(300_000, 2); // notional capped to the bracket
+    // And nothing exceeds it.
+    for (const o of strat.currentOrders) expect(o.amount).toBeLessThanOrEqual(300_000 + 1e-6);
+  });
+
+  test("no affordable size (zero balance) opens no series", () => {
+    const strat = new Recovery({
+      symbol: "BTC/USDT",
+      ratio: 2,
+      leverage: 50,
+      gapPercent: 30,
+      maxDrawdownPercent: 40,
+      maxSteps: 4,
+      forceSide: "buy",
+    });
+    strat.onSignal(10000, 0, 0); // bankrupt
+    expect(strat.hasActiveSeries).toBe(false);
+    expect(strat.currentOrders.length).toBe(0);
   });
 });

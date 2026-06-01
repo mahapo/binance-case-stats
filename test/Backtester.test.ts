@@ -65,6 +65,33 @@ describe("Backtester — synthetic price path", () => {
     // Closed at the TP line (10060), not the overshoot price → exact target.
     expect(result.series[0].grossProfit).toBeCloseTo(0.06, 9);
   });
+
+  test("drawdown sizing keeps the balance positive on a fully-lost series", () => {
+    // Oscillate exactly between the two zone lines (10000 / 9940, gap = 60 at
+    // 50× / 30%) so every hedge stop-loss fires until maxSteps is reached.
+    const ticks = PriceLoader.syntheticTicks([10000, 9940, 10000, 9940, 10000]);
+    const bt = new Backtester();
+    const result = bt.run(
+      {
+        symbol: "BTC/USDT",
+        ratio: 2,
+        leverage: 50,
+        gapPercent: 30,
+        maxDrawdownPercent: 40,
+        maxSteps: 4,
+        forceSide: "buy",
+        startBalance: 1000,
+      },
+      ticks
+    );
+
+    expect(result.series[0].outcome).toBe("loss");
+    // The worst case loses exactly 40% of the balance — never more.
+    expect(result.series[0].grossProfit).toBeCloseTo(-400, 6);
+    expect(result.balance).toBeCloseTo(1000 - 400 - result.totalFees, 6);
+    expect(result.balance).toBeGreaterThan(0);
+    for (const p of result.equity) expect(p.balance).toBeGreaterThan(0);
+  });
 });
 
 // ===========================================================================

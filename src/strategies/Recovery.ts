@@ -1,4 +1,4 @@
-import { OrderFutures, FeeSchedule } from "../models";
+import { OrderFutures, FeeSchedule, LeverageBracket } from "../models";
 import { StrategyBase } from "./StrategyBase";
 import { ZoneRecovery, Side } from "./ZoneRecovery";
 
@@ -26,22 +26,28 @@ export interface RecoveryOptions {
   /** Stop-loss distance as a leverage-adjusted % of price (TP = ratio × this). */
   gapPercent: number;
   /**
-   * Base (step-0) size as a fixed base-asset quantity. Provide this OR
-   * `riskPercent`. When `riskPercent` is set it takes precedence and the size is
-   * recomputed from the live balance at each new series.
+   * Sizing — provide exactly one of `maxDrawdownPercent`, `riskPercent` or
+   * `baseQuantity` (precedence in that order). All are recomputed per series and
+   * then capped so the largest (last) hedge stays within the leverage's position
+   * bracket.
+   *
+   * `maxDrawdownPercent`: the size is derived from the maximum hedge step so that
+   * a fully-lost series (all `maxSteps` stop-losses) costs exactly this percent
+   * of the live balance — i.e. the worst-case drawdown. This keeps the balance
+   * from ever going negative. e.g. 20–40.
    */
-  baseQuantity?: number;
-  /**
-   * Size the base (step-0) order's margin as this percent of the current balance
-   * (e.g. 1–2). notional = margin × leverage, quantity = notional / price. The
-   * size compounds as the balance changes between series.
-   */
+  maxDrawdownPercent?: number;
+  /** Step-0 margin as a % of balance (notional = margin × leverage). */
   riskPercent?: number;
+  /** Fixed step-0 base-asset quantity. */
+  baseQuantity?: number;
   maxSteps: number;
   lossTakingPolicy?: LossTakingPolicy;
   feeSchedule?: FeeSchedule;
   /** Fee tier used when `feeSchedule` is not supplied (Regular User = 0). */
   vipLevel?: number;
+  /** Position-limit brackets used to cap the last hedge (default BTCUSDT). */
+  leverageBracket?: LeverageBracket;
   maker?: boolean;
   /** RNG for the initial side (injectable for deterministic tests). */
   rng?: () => number;
@@ -64,6 +70,7 @@ export class Recovery extends StrategyBase {
   readonly options: RecoveryOptions & {
     lossTakingPolicy: LossTakingPolicy;
     feeSchedule: FeeSchedule;
+    leverageBracket: LeverageBracket;
     maker: boolean;
     rng: () => number;
   };
@@ -87,12 +94,19 @@ export class Recovery extends StrategyBase {
 
   constructor(options: RecoveryOptions) {
     super();
-    if (options.baseQuantity == null && options.riskPercent == null) {
-      throw new Error("provide baseQuantity or riskPercent");
+    if (
+      options.maxDrawdownPercent == null &&
+      options.riskPercent == null &&
+      options.baseQuantity == null
+    ) {
+      throw new Error(
+        "provide maxDrawdownPercent, riskPercent or baseQuantity"
+      );
     }
     this.options = {
       lossTakingPolicy: "take-loss",
       feeSchedule: options.feeSchedule ?? FeeSchedule.vip(options.vipLevel ?? 0),
+      leverageBracket: options.leverageBracket ?? new LeverageBracket(),
       maker: false,
       rng: Math.random,
       forceSide: options.forceSide,
@@ -100,25 +114,72 @@ export class Recovery extends StrategyBase {
     };
   }
 
+  /** Size multiplier per recovery step: M = 1 + 1/ratio. */
+  private get multiplier(): number {
+    return 1 + 1 / this.options.ratio;
+  }
+
   /**
-   * Base-asset quantity of the step-0 order. With `riskPercent` the order's
-   * margin is that percent of the live balance (notional = margin × leverage);
-   * otherwise the fixed `baseQuantity` is used.
+   * Base-asset quantity of the step-0 order, then capped so the largest (last)
+   * hedge stays within the leverage's position bracket.
+   *   - maxDrawdownPercent: derive the size from the max hedge step so a
+   *     fully-lost series costs exactly that percent of balance.
+   *   - riskPercent: step-0 margin = that percent of balance.
+   *   - baseQuantity: fixed.
    */
-  private resolveBaseQuantity(price: number, balance: number): number {
-    if (this.options.riskPercent != null) {
+  private resolveBaseQuantity(
+    price: number,
+    balance: number,
+    side: Side
+  ): number {
+    const { leverage, maxSteps, gapPercent } = this.options;
+    const M = this.multiplier;
+    const gap = (gapPercent / 100 / leverage) * price;
+
+    let baseQty: number;
+    if (this.options.maxDrawdownPercent != null) {
+      // Worst-case series loss = gap × Σ qᵢ = gap × baseQty × Σ Mⁱ.
+      const sumFactors = (Math.pow(M, maxSteps) - 1) / (M - 1);
+      const worstLossPerQty = gap * sumFactors;
+      baseQty =
+        worstLossPerQty > 0
+          ? ((this.options.maxDrawdownPercent / 100) * balance) / worstLossPerQty
+          : 0;
+    } else if (this.options.riskPercent != null) {
       const margin = (this.options.riskPercent / 100) * balance;
-      return (margin * this.options.leverage) / price;
+      baseQty = (margin * leverage) / price;
+    } else {
+      baseQty = this.options.baseQuantity as number;
     }
-    return this.options.baseQuantity as number;
+
+    // Cap so the last (biggest) hedge's notional ≤ the leverage's bracket limit.
+    // Entries alternate between the two zone lines, so the last step's entry is
+    // one gap off the signal price on odd steps.
+    const lastIdx = maxSteps - 1;
+    const oddLast = lastIdx % 2 === 1;
+    const entryLast = !oddLast
+      ? price
+      : side === "buy"
+        ? price - gap
+        : price + gap;
+    const maxPositionValue =
+      this.options.leverageBracket.maxPositionValue(leverage);
+    const maxBaseQty = maxPositionValue / (Math.pow(M, lastIdx) * entryLast);
+
+    return Math.max(0, Math.min(baseQty, maxBaseQty));
   }
 
   // ---- Hooks ----
 
   onSignal(price: number, timestamp: number, balance = 0): void {
-    this.side =
+    const side =
       this.options.forceSide ?? (this.options.rng() < 0.5 ? "buy" : "sell");
 
+    const baseQuantity = this.resolveBaseQuantity(price, balance, side);
+    // No affordable / bracket-allowed size → don't open a series.
+    if (!(baseQuantity > 0)) return;
+
+    this.side = side;
     this.zone = new ZoneRecovery({
       entryPrice: price,
       side: this.side,
@@ -126,7 +187,7 @@ export class Recovery extends StrategyBase {
       ratio: this.options.ratio,
       leverage: this.options.leverage,
       gapPercent: this.options.gapPercent,
-      baseQuantity: this.resolveBaseQuantity(price, balance),
+      baseQuantity,
       feeSchedule: this.options.feeSchedule,
       maker: this.options.maker,
     });

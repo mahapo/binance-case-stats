@@ -1,6 +1,7 @@
 import * as path from "path";
 import { Backtester, BacktestOptions, BacktestResult } from "./runners";
 import { PriceLoader } from "./data/PriceLoader";
+import { ChartExport } from "./utils";
 import { backtestMatrix, backtestBase } from "./settings/backtesting";
 
 // Matrix backtest: sweep every parameter combination from
@@ -32,14 +33,14 @@ function main() {
       leverage: combo.leverage,
       gapPercent: combo.gapPercent,
       maxSteps: combo.maxSteps,
-      riskPercent: combo.riskPercent, // 1–2% of balance per base trade
-      vipLevel: combo.vipLevel, // fee tier 0..4 → FeeSchedule.vip(level)
+      maxDrawdownPercent: combo.maxDrawdownPercent, // worst-case series loss as % of balance
+      vipLevel: combo.vipLevel, // fee tier 0..9 → FeeSchedule.vip(level)
     };
     const result = new Backtester().run(options, ticks);
 
     const tag =
       `lev ${combo.leverage}  ratio ${combo.ratio}  gap ${combo.gapPercent}%  ` +
-      `maxSteps ${combo.maxSteps}  risk ${combo.riskPercent}%  vip ${combo.vipLevel}`;
+      `maxSteps ${combo.maxSteps}  maxDD ${combo.maxDrawdownPercent}%  vip ${combo.vipLevel}`;
     console.log(
       `[${i + 1}/${backtestMatrix.length}] ${tag}  →  ` +
         `net ${result.totalPnL.toFixed(2)}  ` +
@@ -59,7 +60,7 @@ function main() {
   console.log(
     `lev ${b.options.leverage}  ratio ${b.options.ratio}  ` +
       `gap ${b.options.gapPercent}%  maxSteps ${b.options.maxSteps}  ` +
-      `risk ${b.options.riskPercent}%  vip ${b.options.vipLevel}`
+      `maxDD ${b.options.maxDrawdownPercent}%  vip ${b.options.vipLevel}`
   );
   console.log(`start balance:  ${b.result.startBalance.toFixed(2)} USDT`);
   console.log(`end balance:    ${b.result.balance.toFixed(2)} USDT`);
@@ -68,6 +69,25 @@ function main() {
   console.log(`series:         ${b.result.seriesCount} (win ${(b.result.winRate * 100).toFixed(1)}%)`);
   console.log(`max hedge step: ${b.result.maxStepReached}`);
   console.log(`max drawdown:   ${b.result.maxDrawdown.toFixed(2)} USDT`);
+
+  // Export the best setting's equity/PnL curve as an SVG chart.
+  const settingsTag =
+    `lev ${b.options.leverage} · ratio ${b.options.ratio} · gap ${b.options.gapPercent}% · ` +
+    `maxSteps ${b.options.maxSteps} · maxDD ${b.options.maxDrawdownPercent}% · vip ${b.options.vipLevel}`;
+  const chartPath = path.resolve(process.cwd(), "output", "best-pnl.svg");
+  ChartExport.writeEquitySvg(
+    {
+      startBalance: b.result.startBalance,
+      finalBalance: b.result.balance,
+      equity: b.result.equity,
+    },
+    chartPath,
+    {
+      title: "Zone Recovery — best setting (equity / PnL)",
+      subtitle: `${settingsTag}  ·  ${b.result.seriesCount} series, ${(b.result.winRate * 100).toFixed(1)}% win, fees ${b.result.totalFees.toFixed(2)} USDT`,
+    }
+  );
+  console.log(`\nChart written: ${chartPath}`);
 }
 
 main();
