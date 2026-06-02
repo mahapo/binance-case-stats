@@ -7,47 +7,65 @@ import { OrderFutures, PositionFutures, FeeSchedule } from "../src/models";
 // FeeSchedule — the configurable Binance futures fee structure
 // ===========================================================================
 describe("FeeSchedule", () => {
+  // Canonical USDT / no-BNB schedule (the published table baseline).
+  const usdt = (level: number) =>
+    FeeSchedule.vip(level, { quote: "USDT", bnbDiscount: false });
+
   test("Regular User (VIP 0) USDT rates from the published table", () => {
-    const fs0 = FeeSchedule.vip(0);
+    const fs0 = usdt(0);
     expect(fs0.makerRate).toBeCloseTo(0.0002, 10); // 0.0200%
     expect(fs0.takerRate).toBeCloseTo(0.0005, 10); // 0.0500%
   });
 
   test("VIP levels lower the rates", () => {
-    expect(FeeSchedule.vip(3).makerRate).toBeCloseTo(0.00012, 10); // 0.0120%
-    expect(FeeSchedule.vip(3).takerRate).toBeCloseTo(0.00032, 10); // 0.0320%
-    expect(FeeSchedule.vip(9).makerRate).toBeCloseTo(0.0, 10); // 0.0000%
-    expect(FeeSchedule.vip(9).takerRate).toBeCloseTo(0.00017, 10); // 0.0170%
+    expect(usdt(3).makerRate).toBeCloseTo(0.00012, 10); // 0.0120%
+    expect(usdt(3).takerRate).toBeCloseTo(0.00032, 10); // 0.0320%
+    expect(usdt(9).makerRate).toBeCloseTo(0.0, 10); // 0.0000%
+    expect(usdt(9).takerRate).toBeCloseTo(0.00017, 10); // 0.0170%
   });
 
   test("BNB 10% discount multiplies rates by 0.9", () => {
-    const fs0 = FeeSchedule.vip(0, { bnbDiscount: true });
+    const fs0 = FeeSchedule.vip(0, { quote: "USDT", bnbDiscount: true });
     expect(fs0.makerRate).toBeCloseTo(0.00018, 10); // 0.0180%
     expect(fs0.takerRate).toBeCloseTo(0.00045, 10); // 0.0450%
   });
 
   test("USDC quote uses the USDC column", () => {
-    const usdc = FeeSchedule.vip(0, { quote: "USDC" });
+    const usdc = FeeSchedule.vip(0, { quote: "USDC", bnbDiscount: false });
     expect(usdc.makerRate).toBeCloseTo(0.0, 10); // 0.0000%
     expect(usdc.takerRate).toBeCloseTo(0.0004, 10); // 0.0400%
   });
 
+  test("default schedule is USDC with the BNB discount", () => {
+    const def = new FeeSchedule();
+    expect(def.quote).toBe("USDC");
+    expect(def.bnbDiscount).toBe(true);
+    expect(def.makerRate).toBeCloseTo(0.0, 10); // USDC maker 0%
+    expect(def.takerRate).toBeCloseTo(0.0004 * 0.9, 10); // 0.0400% × 0.9
+  });
+
   test("explicit rates override the table (for historical schedules)", () => {
-    const historical = new FeeSchedule({ maker: 0.0002, taker: 0.0004 });
+    const historical = new FeeSchedule({
+      maker: 0.0002,
+      taker: 0.0004,
+      bnbDiscount: false,
+    });
     expect(historical.makerRate).toBeCloseTo(0.0002, 10);
     expect(historical.takerRate).toBeCloseTo(0.0004, 10);
   });
 
   test("feeFor charges notional × rate, rounded to 8 decimals", () => {
-    const fs0 = FeeSchedule.vip(0);
+    const fs0 = usdt(0);
     // taker on 100,000 notional: 100000 × 0.0005 = 50
     expect(fs0.feeFor(100000, { maker: false })).toBeCloseTo(50, 8);
     // maker on 100,000 notional: 100000 × 0.0002 = 20
     expect(fs0.feeFor(100000, { maker: true })).toBeCloseTo(20, 8);
     // exact Binance rounding from a real fill: 3848.10 × 0.0002 = 0.76962
-    expect(new FeeSchedule({ maker: 0.0002 }).feeFor(3848.1, { maker: true })).toBe(
-      0.76962
-    );
+    expect(
+      new FeeSchedule({ maker: 0.0002, bnbDiscount: false }).feeFor(3848.1, {
+        maker: true,
+      })
+    ).toBe(0.76962);
   });
 });
 
@@ -226,7 +244,7 @@ describe("OrderFutures", () => {
         leverage: 20,
         side: "buy",
         symbol: "BTC/USDT",
-        feeSchedule: FeeSchedule.vip(0),
+        feeSchedule: FeeSchedule.vip(0, { quote: "USDT", bnbDiscount: false }),
         maker: false,
       });
       expect(taker.fee).toBeCloseTo(50, 6); // 100000 × 0.0005
@@ -237,7 +255,7 @@ describe("OrderFutures", () => {
         leverage: 20,
         side: "buy",
         symbol: "BTC/USDT",
-        feeSchedule: FeeSchedule.vip(0),
+        feeSchedule: FeeSchedule.vip(0, { quote: "USDT", bnbDiscount: false }),
         maker: true,
       });
       expect(maker.fee).toBeCloseTo(20, 6); // 100000 × 0.0002
@@ -268,7 +286,7 @@ describe("OrderFutures", () => {
   });
 
   describe("break-even (testnet-verified, BNB-10%-off maker rate 0.018%)", () => {
-    const bnb = FeeSchedule.vip(0, { bnbDiscount: true });
+    const bnb = FeeSchedule.vip(0, { quote: "USDT", bnbDiscount: true });
 
     test("short — entry 109715.08 → 109675.58", () => {
       const o = new OrderFutures({
@@ -344,7 +362,10 @@ describe("PositionFutures", () => {
   });
 
   test("fees accumulate via the fee schedule", () => {
-    const p = new PositionFutures("BTCUSDT", FeeSchedule.vip(0));
+    const p = new PositionFutures(
+      "BTCUSDT",
+      FeeSchedule.vip(0, { quote: "USDT", bnbDiscount: false })
+    );
     p.applyFill({ price: 100000, quantity: 1, side: "buy", maker: false }); // taker 0.05% → 50
     p.applyFill({ price: 110000, quantity: 1, side: "sell", maker: false }); // 110000 × 0.0005 = 55
     expect(p.totalFee).toBeCloseTo(105, 6);
@@ -501,7 +522,7 @@ describe("Integration — real Binance USD-M trade exports", () => {
       // Historical taker rate 0.0400% (pre-2024) and 0.0500% (2024+), maker 0.0200%.
       const rates = [0.0002, 0.0004, 0.0005];
       const schedules = rates.map(
-        (r) => new FeeSchedule({ maker: r, taker: r })
+        (r) => new FeeSchedule({ maker: r, taker: r, bnbDiscount: false })
       );
 
       let checked = 0;

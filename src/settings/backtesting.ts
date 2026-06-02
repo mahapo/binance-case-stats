@@ -8,12 +8,12 @@ import { Matrix, ParamRange } from "../utils";
 // `side`: 0 = forced buy, 1 = forced sell, 2 = random long/short per series
 // (reproducible via a fixed seed in backtest.ts). e.g. set end:2 to sweep all three.
 export const backtestRanges: ParamRange[] = [
-  { key: "leverage", start: 150, end: 150, step: 25 }, // 150x (max allowed by Binance)
-  { key: "ratio", start: 3, end: 3, step: 1 }, // (TP% = ratio × gap%)
+  { key: "leverage", start: 50, end: 125, step: 25 }, // 150x (max allowed by Binance)
+  { key: "ratio", start: 2, end: 3, step: 1 }, // (TP% = ratio × gap%)
   { key: "gapPercent", start: 20, end: 40, step: 10 }, // 30, 40  ("30% SL", …)
   { key: "maxSteps", start: 4, end: 6, step: 1 }, // 4 .. 6 hedge orders
-  { key: "maxDrawdownPercent", start: 20, end: 40, step: 10 }, // worst-case series loss: 20/30/40%
-  { key: "side", start: 0, end: 2, step: 1 }, // 0 = buy, 1 = sell, 2 = random (set end:2 to include random)
+  { key: "maxDrawdownPercent", start: 10, end: 50, step: 10 }, // worst-case series loss: 20/30/40%
+  { key: "side", start: 2, end: 2, step: 1 }, // 0 = buy, 1 = sell, 2 = random (set end:2 to include random)
 ];
 
 // Fixed options applied to every combination. Size is derived from
@@ -21,9 +21,10 @@ export const backtestRanges: ParamRange[] = [
 // balance never goes negative) and capped by the leverage position bracket.
 export const backtestBase = {
   symbol: "BTC/USDT",
-  startBalance: 1000, // USDT
+  startBalance: 100, // USDT
   lossTakingPolicy: "take-loss" as const,
   vipLevel: 9, // default fee tier for the sweep (compared 0..9 afterwards)
+  quote: "USDC" as const,
 };
 
 export const backtestMatrix = Matrix.fromRanges(backtestRanges);

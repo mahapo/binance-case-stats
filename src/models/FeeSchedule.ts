@@ -67,8 +67,8 @@ export class FeeSchedule {
 
   constructor(options: FeeScheduleOptions = {}) {
     this.vipLevel = options.vipLevel ?? 0;
-    this.quote = options.quote ?? "USDT";
-    this.bnbDiscount = options.bnbDiscount ?? false;
+    this.quote = options.quote ?? "USDC";
+    this.bnbDiscount = options.bnbDiscount ?? true;
 
     if (this.vipLevel < 0 || this.vipLevel >= VIP_TABLE.length) {
       throw new Error(`Unknown VIP level: ${this.vipLevel}`);

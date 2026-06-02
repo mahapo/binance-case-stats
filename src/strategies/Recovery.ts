@@ -1,4 +1,4 @@
-import { OrderFutures, FeeSchedule, LeverageBracket } from "../models";
+import { OrderFutures, FeeSchedule, LeverageBracket, QuoteAsset } from "../models";
 import { mulberry32 } from "../utils/rng";
 import { StrategyBase } from "./StrategyBase";
 import { ZoneRecovery, Side } from "./ZoneRecovery";
@@ -47,6 +47,10 @@ export interface RecoveryOptions {
   feeSchedule?: FeeSchedule;
   /** Fee tier used when `feeSchedule` is not supplied (Regular User = 0). */
   vipLevel?: number;
+  /** Quote asset for the fee tier (default per FeeSchedule). */
+  quote?: QuoteAsset;
+  /** Apply the BNB fee discount when building the fee tier. */
+  bnbDiscount?: boolean;
   /** Position-limit brackets used to cap the last hedge (default BTCUSDT). */
   leverageBracket?: LeverageBracket;
   maker?: boolean;
@@ -111,7 +115,12 @@ export class Recovery extends StrategyBase {
     this.options = {
       ...options,
       lossTakingPolicy: options.lossTakingPolicy ?? "take-loss",
-      feeSchedule: options.feeSchedule ?? FeeSchedule.vip(options.vipLevel ?? 0),
+      feeSchedule:
+        options.feeSchedule ??
+        FeeSchedule.vip(options.vipLevel ?? 0, {
+          quote: options.quote,
+          bnbDiscount: options.bnbDiscount,
+        }),
       leverageBracket: options.leverageBracket ?? new LeverageBracket(),
       maker: options.maker ?? false,
       rng:
