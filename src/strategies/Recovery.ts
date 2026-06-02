@@ -226,15 +226,15 @@ export class Recovery extends StrategyBase {
     this.currentOrder = order;
   }
 
-  onStopLoss(order: OrderFutures): void {
-    this.closeOrder(order, order.stopLoss!);
+  onStopLoss(order: OrderFutures, time?: number): void {
+    this.closeOrder(order, order.stopLoss!, time);
 
     const nextIndex = this.stepIndex + 1;
     if (nextIndex < this.currentOrders.length) {
       // Open and immediately fill the next, larger, opposite hedge at this line.
       this.stepIndex = nextIndex;
       const next = this.currentOrders[nextIndex];
-      this.fillOrder(next, order.timestampExit ?? order.timestamp);
+      this.fillOrder(next, time ?? order.timestampExit ?? order.timestamp);
       this.currentOrder = next;
       this.stats.maxStepReached = Math.max(
         this.stats.maxStepReached,
@@ -246,8 +246,8 @@ export class Recovery extends StrategyBase {
     }
   }
 
-  onTakeProfit(order: OrderFutures): void {
-    this.closeOrder(order, order.takeProfit!);
+  onTakeProfit(order: OrderFutures, time?: number): void {
+    this.closeOrder(order, order.takeProfit!, time);
     this.finishSeries("win");
   }
 
@@ -263,10 +263,10 @@ export class Recovery extends StrategyBase {
     );
   }
 
-  private closeOrder(order: OrderFutures, priceExit: number): void {
+  private closeOrder(order: OrderFutures, priceExit: number, time?: number): void {
     order.status = "closed";
     order.priceExit = priceExit;
-    order.timestampExit = order.timestampExit ?? order.timestampFilled;
+    order.timestampExit = time ?? order.timestampExit ?? order.timestampFilled;
   }
 
   private finishSeries(outcome: "win" | "loss"): void {

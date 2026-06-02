@@ -77,6 +77,35 @@ describe("ChartExport — equity/PnL SVG", () => {
     expect((cmp.match(/,/g) || []).length).toBeLessThan(20_000);
   });
 
+  test("tradesSvg draws price, entries, lots and per-series PnL", () => {
+    const ticks = Array.from({ length: 200 }, (_, i) => ({
+      time: 1_700_000_000_000 + i * 1000,
+      price: 100 + Math.sin(i / 20) * 2,
+    }));
+    const svg = ChartExport.tradesSvg({
+      ticks,
+      series: [
+        {
+          seriesId: 0,
+          outcome: "win",
+          grossProfit: 5,
+          netProfit: 4.2,
+          orders: [
+            { step: 1, side: "buy", entry: 100, stopLoss: 99, takeProfit: 102, quantity: 0.01, pnl: -1, fillTime: ticks[10].time, exitTime: ticks[30].time, exitPrice: 99, hit: "sl" },
+            { step: 2, side: "sell", entry: 99, stopLoss: 100, takeProfit: 97, quantity: 0.02, pnl: 5, fillTime: ticks[30].time, exitTime: ticks[60].time, exitPrice: 97, hit: "tp" },
+          ],
+        },
+      ],
+      title: "How it works",
+    });
+    expect(svg.startsWith("<?xml")).toBe(true);
+    expect(svg).toContain("How it works");
+    expect(svg).toContain("<polyline"); // price line + zigzag
+    expect(svg).toContain("<circle"); // numbered entries
+    expect(svg).toContain("Series 0");
+    expect(svg).toContain("L 0.0100"); // lot label for step 1
+  });
+
   test("writeEquitySvg writes a file and creates parent dirs", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "chart-"));
     const file = path.join(dir, "nested", "pnl.svg");

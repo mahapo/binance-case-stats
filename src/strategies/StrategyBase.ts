@@ -32,11 +32,11 @@ export abstract class StrategyBase {
   /** Called once an open order has been filled at `price`. */
   abstract onOrderFilled(order: OrderFutures): void;
 
-  /** Called when a filled order's stop-loss is hit. */
-  abstract onStopLoss(order: OrderFutures): void;
+  /** Called when a filled order's stop-loss is hit (at the given time). */
+  abstract onStopLoss(order: OrderFutures, time?: number): void;
 
-  /** Called when a filled order's take-profit is hit. */
-  abstract onTakeProfit(order: OrderFutures): void;
+  /** Called when a filled order's take-profit is hit (at the given time). */
+  abstract onTakeProfit(order: OrderFutures, time?: number): void;
 
   /** True while a recovery series is in progress. */
   get hasActiveSeries(): boolean {

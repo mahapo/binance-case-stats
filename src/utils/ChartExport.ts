@@ -37,6 +37,42 @@ const PALETTE = [
   "#0891b2", "#db2777", "#65a30d", "#475569", "#ea580c",
 ];
 
+export interface PricePoint {
+  time: number;
+  price: number;
+}
+
+export interface VizOrder {
+  step: number; // 1-based step in the series
+  side: "buy" | "sell";
+  entry: number;
+  stopLoss: number;
+  takeProfit: number;
+  quantity: number;
+  pnl: number;
+  fillTime: number;
+  exitTime: number;
+  exitPrice: number;
+  hit: "tp" | "sl" | "open";
+}
+
+export interface VizSeries {
+  seriesId: number | string;
+  outcome: "win" | "loss" | "open";
+  grossProfit: number;
+  netProfit: number;
+  orders: VizOrder[];
+}
+
+export interface TradesChartInput {
+  ticks: PricePoint[];
+  series: VizSeries[];
+  title?: string;
+  subtitle?: string;
+  width?: number;
+  height?: number;
+}
+
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const fmt = (n: number) =>
@@ -263,6 +299,145 @@ export class ChartExport {
     options: ChartOptions = {}
   ): string {
     const svg = ChartExport.equityComparisonSvg(curves, options);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, svg);
+    return filePath;
+  }
+
+  /**
+   * Illustrative "how the bot works" chart: the real price in the background
+   * with each recovery series drawn on top — the gap zone, the take-profit
+   * envelope, numbered entries with their lot size, the SL/TP each leg targets,
+   * where it exited, and the series PnL. Mirrors the CAP Zone Recovery diagram.
+   */
+  static tradesSvg(input: TradesChartInput): string {
+    const W = input.width ?? 1180;
+    const H = input.height ?? 640;
+    const m = { top: 60, right: 214, bottom: 46, left: 72 };
+    const pw = W - m.left - m.right;
+    const ph = H - m.top - m.bottom;
+
+    const ticks = input.ticks.length
+      ? input.ticks
+      : [{ time: 0, price: 0 }];
+    const allOrders = input.series.flatMap((s) => s.orders);
+
+    const times = ticks.map((p) => p.time);
+    const tMin = minOf(times);
+    const tMax = maxOf(times);
+    const prices = ticks.map((p) => p.price);
+    const lvls = allOrders.flatMap((o) => [o.entry, o.stopLoss, o.takeProfit]);
+    let yMin = minOf([...prices, ...lvls]);
+    let yMax = maxOf([...prices, ...lvls]);
+    const pad = (yMax - yMin) * 0.06 || 1;
+    yMin -= pad;
+    yMax += pad;
+
+    const x = (t: number) =>
+      m.left + (tMax === tMin ? pw / 2 : ((t - tMin) / (tMax - tMin)) * pw);
+    const y = (p: number) =>
+      m.top + (yMax === yMin ? ph / 2 : (1 - (p - yMin) / (yMax - yMin)) * ph);
+    const clampX = (t: number) => Math.max(m.left, Math.min(m.left + pw, x(t)));
+
+    // y gridlines + price labels.
+    let grid = "";
+    for (let i = 0; i <= 5; i++) {
+      const p = yMin + ((yMax - yMin) * i) / 5;
+      const yy = y(p);
+      grid +=
+        `<line x1="${m.left}" y1="${yy.toFixed(1)}" x2="${m.left + pw}" y2="${yy.toFixed(1)}" stroke="#eef2f7" stroke-width="1"/>` +
+        `<text x="${m.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#94a3b8">${fmt(p)}</text>`;
+    }
+
+    // Background price line.
+    const priceLine = downsample(ticks)
+      .map((p) => `${x(p.time).toFixed(1)},${y(p.price).toFixed(1)}`)
+      .join(" ");
+
+    const buyColor = "#16a34a";
+    const sellColor = "#dc2626";
+    let layers = "";
+    let panel = "";
+
+    input.series.forEach((s, si) => {
+      const color = s.orders[0]?.side === "sell" ? sellColor : PALETTE[si % PALETTE.length];
+      const entries = s.orders.map((o) => o.entry);
+      const A = maxOf(entries); // upper zone line
+      const B = minOf(entries); // lower zone line
+      const topTP = maxOf(s.orders.map((o) => o.takeProfit));
+      const botTP = minOf(s.orders.map((o) => o.takeProfit));
+      const t0 = clampX(minOf(s.orders.map((o) => o.fillTime)));
+      const t1 = clampX(maxOf(s.orders.map((o) => o.exitTime)));
+
+      // Recovery-gap band + zone lines + TP envelope.
+      layers +=
+        `<rect x="${t0.toFixed(1)}" y="${y(A).toFixed(1)}" width="${(t1 - t0).toFixed(1)}" height="${(y(B) - y(A)).toFixed(1)}" fill="#64748b" fill-opacity="0.08"/>` +
+        `<line x1="${t0.toFixed(1)}" y1="${y(A).toFixed(1)}" x2="${t1.toFixed(1)}" y2="${y(A).toFixed(1)}" stroke="#2563eb" stroke-width="1"/>` +
+        `<line x1="${t0.toFixed(1)}" y1="${y(B).toFixed(1)}" x2="${t1.toFixed(1)}" y2="${y(B).toFixed(1)}" stroke="#dc2626" stroke-width="1"/>` +
+        `<line x1="${t0.toFixed(1)}" y1="${y(topTP).toFixed(1)}" x2="${t1.toFixed(1)}" y2="${y(topTP).toFixed(1)}" stroke="#16a34a" stroke-width="1.3" stroke-dasharray="7 4"/>` +
+        `<line x1="${t0.toFixed(1)}" y1="${y(botTP).toFixed(1)}" x2="${t1.toFixed(1)}" y2="${y(botTP).toFixed(1)}" stroke="#16a34a" stroke-width="1.3" stroke-dasharray="7 4"/>`;
+
+      // Zigzag connecting consecutive entries.
+      const zig = s.orders
+        .map((o) => `${x(o.fillTime).toFixed(1)},${y(o.entry).toFixed(1)}`)
+        .join(" ");
+      layers += `<polyline points="${zig}" fill="none" stroke="#94a3b8" stroke-width="1.2"/>`;
+
+      // Each leg: exit marker, entry circle, lot label.
+      for (const o of s.orders) {
+        const ex = x(o.fillTime);
+        const ey = y(o.entry);
+        const xx = x(o.exitTime);
+        const xy = y(o.exitPrice);
+        const hitColor = o.hit === "tp" ? "#16a34a" : o.hit === "sl" ? "#dc2626" : "#94a3b8";
+        // line from entry to its exit point + exit dot
+        layers +=
+          `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${xx.toFixed(1)}" y2="${xy.toFixed(1)}" stroke="${hitColor}" stroke-width="1" stroke-opacity="0.5"/>` +
+          `<circle cx="${xx.toFixed(1)}" cy="${xy.toFixed(1)}" r="3" fill="${hitColor}"/>`;
+        // lot-size label above the entry
+        layers += `<text x="${ex.toFixed(1)}" y="${(ey - 14).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="#475569">${o.side === "buy" ? "L" : "S"} ${o.quantity.toPrecision(3)}</text>`;
+        // numbered entry circle
+        const eColor = o.side === "buy" ? buyColor : sellColor;
+        layers +=
+          `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="9" fill="#e7dcc4" stroke="${eColor}" stroke-width="2"/>` +
+          `<text x="${ex.toFixed(1)}" y="${(ey + 3.5).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#3f3f46">${o.step}</text>`;
+      }
+
+      // Series PnL annotation near the close.
+      const net = s.netProfit;
+      const nColor = net >= 0 ? "#16a34a" : "#dc2626";
+      layers += `<text x="${t1.toFixed(1)}" y="${(y(topTP) - 8).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="700" fill="${nColor}">S${s.seriesId} ${net >= 0 ? "+" : ""}${fmt(net)}</text>`;
+
+      // Right info panel row.
+      const py = m.top + 8 + si * 58;
+      panel +=
+        `<rect x="${(m.left + pw + 16).toFixed(1)}" y="${py}" width="10" height="10" fill="${color}"/>` +
+        `<text x="${(m.left + pw + 32).toFixed(1)}" y="${py + 9}" font-size="12" font-weight="700" fill="#334155">Series ${s.seriesId} · ${s.outcome}</text>` +
+        `<text x="${(m.left + pw + 16).toFixed(1)}" y="${py + 26}" font-size="11.5" fill="#64748b">${s.orders.length} steps · ${s.orders[0]?.side === "sell" ? "short-start" : "long-start"}</text>` +
+        `<text x="${(m.left + pw + 16).toFixed(1)}" y="${py + 42}" font-size="11.5" fill="${nColor}">net ${net >= 0 ? "+" : ""}${fmt(net)} · gross ${s.grossProfit >= 0 ? "+" : ""}${fmt(s.grossProfit)}</text>`;
+    });
+
+    const xLabels =
+      `<text x="${m.left}" y="${H - 14}" text-anchor="start" font-size="11" fill="#94a3b8">${day(tMin)}</text>` +
+      `<text x="${m.left + pw}" y="${H - 14}" text-anchor="end" font-size="11" fill="#94a3b8">${day(tMax)}</text>`;
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="ui-sans-serif, system-ui, sans-serif">
+  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <text x="${m.left}" y="26" font-size="17" font-weight="700" fill="#111827">${esc(input.title ?? "Zone Recovery — trades")}</text>
+  <text x="${m.left}" y="45" font-size="12" fill="#6b7280">${esc(input.subtitle ?? "price (grey) · gap zone · TP envelope (green) · numbered entries with lots")}</text>
+  ${grid}
+  <polyline points="${priceLine}" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+  ${layers}
+  ${panel}
+  ${xLabels}
+</svg>
+`;
+  }
+
+  /** Write the illustrative trades SVG to disk. */
+  static writeTradesSvg(input: TradesChartInput, filePath: string): string {
+    const svg = ChartExport.tradesSvg(input);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, svg);
     return filePath;
