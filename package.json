@@ -2,6 +2,7 @@
   "scripts": {
     "test": "npx jest",
     "backtest": "npx ts-node src/backtest.ts",
+    "report": "npx ts-node src/report.ts",
     "stats": "npx ts-node src/stats/analyze.ts",
     "stats:verify": "npx ts-node src/stats/verifyGrouping.ts",
     "stats:streaks": "npx ts-node src/stats/exportLossStreaks.ts",

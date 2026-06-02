@@ -36,6 +36,23 @@ describe("PriceLoader.loadTicks", () => {
     expect(ticks[1]).toEqual({ time: 1614038400012, price: 54127.05 });
   });
 
+  test("Binance aggTrades WITH header (transact_time column)", () => {
+    const f = tmp(
+      "agg_trade_id,price,quantity,first_trade_id,last_trade_id,transact_time,is_buyer_maker\n" +
+        "3273510278,76305.4,0.001,7617942158,7617942158,1777593600217,true\n" +
+        "3273510279,76305.5,0.006,7617942159,7617942162,1777593600582,false\n"
+    );
+    expect(PriceLoader.loadTicks(f)).toEqual([
+      { time: 1777593600217, price: 76305.4 },
+      { time: 1777593600582, price: 76305.5 },
+    ]);
+  });
+
+  test("Binance aggTrades WITHOUT header (epoch auto-detected, not the trade ids)", () => {
+    const f = tmp("3273510278,76305.4,0.001,7617942158,7617942158,1777593600217,true\n");
+    expect(PriceLoader.loadTicks(f)).toEqual([{ time: 1777593600217, price: 76305.4 }]);
+  });
+
   test("simple unix,price", () => {
     const f = tmp("unix,price\n1614038400011,100\n1614038400012,101\n");
     expect(PriceLoader.loadTicks(f).map((t) => t.price)).toEqual([100, 101]);

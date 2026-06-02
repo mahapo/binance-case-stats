@@ -106,6 +106,83 @@ describe("ChartExport — equity/PnL SVG", () => {
     expect(svg).toContain("L 0.0100"); // lot label for step 1
   });
 
+  test("barChartSvg anchors at zero and colours by sign", () => {
+    const svg = ChartExport.barChartSvg(
+      [
+        { label: "vip 0", value: -68.27 },
+        { label: "vip 9", value: 50.31 },
+      ],
+      { title: "Net PnL per fee tier", valueSuffix: " USDT" }
+    );
+    expect(svg.startsWith("<?xml")).toBe(true);
+    expect(svg).toContain("Net PnL per fee tier");
+    expect(svg).toContain("#dc2626"); // negative bar red
+    expect(svg).toContain("#16a34a"); // positive bar green
+    expect(svg).toContain("vip 0");
+    expect(svg).toContain("-68.27 USDT");
+    expect(svg).toContain("+50.31 USDT");
+  });
+
+  test("equity chart y-axis starts at 0", () => {
+    const svg = ChartExport.equitySvg(series(1500));
+    // The bottom gridline label is 0, and no axis label is negative.
+    expect(svg).toContain(">0.00</text>");
+    expect(svg).not.toMatch(/>-\d/);
+  });
+
+  test("comparison accepts a custom legend", () => {
+    const svg = ChartExport.equityComparisonSvg(
+      [
+        { label: "s1", startBalance: 1000, finalBalance: 900, equity: series(900).equity },
+        { label: "s2", startBalance: 1000, finalBalance: 1300, equity: series(1300).equity },
+      ],
+      { legendItems: [{ label: "Regular", color: "#dc2626" }, { label: "VIP", color: "#16a34a" }] }
+    );
+    expect(svg).toContain("Regular");
+    expect(svg).toContain("VIP");
+    expect(svg).not.toContain("s1"); // per-curve legend suppressed
+  });
+
+  test("recoverySchematicSvg draws the staircase, zone lines and TP corridor", () => {
+    const svg = ChartExport.recoverySchematicSvg({
+      seriesId: 7,
+      outcome: "win",
+      grossProfit: 5,
+      netProfit: 4.2,
+      orders: [
+        { step: 1, side: "buy", entry: 100, stopLoss: 99, takeProfit: 103, quantity: 0.01, pnl: -1, fillTime: 0, exitTime: 0, exitPrice: 99, hit: "sl" },
+        { step: 2, side: "sell", entry: 99, stopLoss: 100, takeProfit: 96, quantity: 0.02, pnl: -1, fillTime: 0, exitTime: 0, exitPrice: 100, hit: "sl" },
+        { step: 3, side: "buy", entry: 100, stopLoss: 99, takeProfit: 103, quantity: 0.04, pnl: 5, fillTime: 0, exitTime: 0, exitPrice: 103, hit: "tp" },
+      ],
+    });
+    expect(svg.startsWith("<?xml")).toBe(true);
+    expect(svg).toContain("Take-Profit");
+    expect(svg).toContain("Series 7");
+    expect(svg).toContain("Long 0.0100");
+    expect(svg).toContain("Short 0.0200");
+    expect((svg.match(/<circle/g) || []).length).toBeGreaterThanOrEqual(3); // numbered entries
+  });
+
+  test("logScale comparison renders without error", () => {
+    const big = (final: number): EquitySeries => ({
+      startBalance: 10000,
+      finalBalance: final,
+      equity: [
+        { time: 1, balance: 10000 },
+        { time: 2, balance: final },
+      ],
+    });
+    const svg = ChartExport.equityComparisonSvg(
+      [
+        { label: "ruin", ...big(0.01) },
+        { label: "rich", ...big(3_000_000) },
+      ],
+      { logScale: true }
+    );
+    expect(svg).toContain("<polyline");
+    expect(svg).not.toMatch(/NaN|Infinity/);
+  });
+
   test("writeEquitySvg writes a file and creates parent dirs", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "chart-"));
     const file = path.join(dir, "nested", "pnl.svg");

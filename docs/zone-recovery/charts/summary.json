@@ -1,0 +1,189 @@
+{
+  "generatedAt": "2026-06-02T23:03:26.300Z",
+  "data": {
+    "csv": "Gemini_BTCUSD_tradeprints_Q4_2019.csv",
+    "ticks": 765528
+  },
+  "canonical": {
+    "symbol": "BTC/USDT",
+    "leverage": 125,
+    "ratio": 3,
+    "gapPercent": 20,
+    "maxSteps": 6,
+    "baseQuantity": 0.02,
+    "lossTakingPolicy": "breakeven",
+    "startBalance": 100000
+  },
+  "seed": 20210223,
+  "grossProfit": 1098.349237553259,
+  "grossIdenticalAcrossScenarios": true,
+  "grossSpread": 0,
+  "tradedVolumeUsd": 6778018.86408086,
+  "breakEvenTakerBps": 1.6204576286646286,
+  "vip9VolumeThresholdUsd": 25000000000,
+  "scenarios": [
+    {
+      "key": "reg-usdt",
+      "label": "Regular · USDT",
+      "takerBps": 5,
+      "net": -2290.6601941359986,
+      "end": 97709.339805864,
+      "fees": 3389.0094316900095,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "reg-usdt-bnb",
+      "label": "Regular · USDT · BNB",
+      "takerBps": 4.5,
+      "net": -1951.759251406722,
+      "end": 98048.24074859328,
+      "fees": 3050.1084889599965,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "vip3-usdt",
+      "label": "VIP 3 · USDT",
+      "takerBps": 3.2,
+      "net": -1070.6167987060617,
+      "end": 98929.38320129394,
+      "fees": 2168.9660362599984,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "vip6-usdt",
+      "label": "VIP 6 · USDT",
+      "takerBps": 2.5,
+      "net": -596.1554786362976,
+      "end": 99403.8445213637,
+      "fees": 1694.5047161900127,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "vip9-usdt",
+      "label": "VIP 9 · USDT",
+      "takerBps": 1.7000000000000002,
+      "net": -53.91396931660711,
+      "end": 99946.0860306834,
+      "fees": 1152.2632068699993,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "vip9-usdc",
+      "label": "VIP 9 · USDC",
+      "takerBps": 0.94,
+      "net": 461.2154645035189,
+      "end": 100461.21546450352,
+      "fees": 637.1337730500028,
+      "gross": 1098.349237553259,
+      "series": 4046
+    },
+    {
+      "key": "vip9-usdc-bnb",
+      "label": "VIP 9 · USDC · BNB",
+      "takerBps": 0.846,
+      "net": 524.9288411926682,
+      "end": 100524.92884119267,
+      "fees": 573.4203963599997,
+      "gross": 1098.349237553259,
+      "series": 4046
+    }
+  ],
+  "robustness": {
+    "seeds": 24,
+    "regularLosses": 24,
+    "vipWins": 24,
+    "regularMeanNet": -2237.9000769639,
+    "vipMeanNet": 594.4034436733364
+  },
+  "compounding": {
+    "config": {
+      "symbol": "BTC/USDT",
+      "leverage": 50,
+      "ratio": 3,
+      "gapPercent": 20,
+      "maxSteps": 5,
+      "maxDrawdownPercent": 30,
+      "lossTakingPolicy": "take-loss",
+      "startBalance": 10000
+    },
+    "seed": 1337,
+    "quote": "USDC+BNB",
+    "perVip": [
+      {
+        "vip": 0,
+        "net": -9999.992353792104,
+        "end": 0.007646207895876471,
+        "fees": 17666.70375066998,
+        "series": 808
+      },
+      {
+        "vip": 1,
+        "net": -9999.992353792104,
+        "end": 0.007646207895876471,
+        "fees": 17666.70375066998,
+        "series": 808
+      },
+      {
+        "vip": 2,
+        "net": -9999.10866270695,
+        "end": 0.891337293049287,
+        "fees": 39628.5358181201,
+        "series": 808
+      },
+      {
+        "vip": 3,
+        "net": -9961.369560196688,
+        "end": 38.63043980331218,
+        "fees": 121790.48160189996,
+        "series": 808
+      },
+      {
+        "vip": 4,
+        "net": 1100627.7718773163,
+        "end": 1110627.7718773163,
+        "fees": 2405042.5029267333,
+        "series": 808
+      },
+      {
+        "vip": 5,
+        "net": 2428003.0185774732,
+        "end": 2438003.0185774732,
+        "fees": 2382927.6572564957,
+        "series": 808
+      },
+      {
+        "vip": 6,
+        "net": 2779538.008141308,
+        "end": 2789538.008141308,
+        "fees": 2226004.2114980547,
+        "series": 808
+      },
+      {
+        "vip": 7,
+        "net": 3233458.7138585113,
+        "end": 3243458.7138585113,
+        "fees": 1973290.4847563473,
+        "series": 808
+      },
+      {
+        "vip": 8,
+        "net": 3525051.5341113075,
+        "end": 3535051.5341113075,
+        "fees": 1807946.3256428605,
+        "series": 808
+      },
+      {
+        "vip": 9,
+        "net": 3949362.192050544,
+        "end": 3959362.192050544,
+        "fees": 1565300.1716714296,
+        "series": 808
+      }
+    ]
+  }
+}

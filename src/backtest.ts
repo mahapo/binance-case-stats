@@ -19,6 +19,7 @@ function main() {
     path.resolve(
       __dirname,
       // "../data/BTC/BTCUSDT-trades-2021-04-18.csv",
+      "../data/BTC/BTCUSDT-aggTrades-2026-01.csv",
       // "../data/BTC/Gemini_BTCUSD_tradeprints_Q4_2019.csv",
       "../data/ETH/Gemini_ETHUSD_tradeprints_2019.csv",
     );

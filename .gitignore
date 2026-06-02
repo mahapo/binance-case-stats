@@ -63,3 +63,6 @@ typings/
 .next
 
 lib/
+
+docs/zone-recovery/runs
+data

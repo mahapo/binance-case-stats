@@ -66,18 +66,24 @@ export class PriceLoader {
       const resolveColumns = (line: string): boolean => {
         const cols = parseCsvLine(line);
         const lower = cols.map((h) => h.toLowerCase());
+        // Header: a "price" column and an epoch column named unix/timestamp or
+        // ending in "time" (covers Binance's `time` and aggTrades `transact_time`).
         timeIdx = lower.findIndex(
-          (h) => h === "unix" || h === "time" || h === "timestamp"
+          (h) => h === "unix" || h === "timestamp" || h.endsWith("time")
         );
         priceIdx = lower.indexOf("price");
         if (timeIdx !== -1 && priceIdx !== -1) return false; // header row → skip
 
-        // No header — assume Binance trades layout id,price,qty,quote_qty,time,…
+        // No header — Binance trades/aggTrades data row: price is column 1; the
+        // timestamp is the column that looks like a millisecond epoch (≥ 1e12),
+        // which distinguishes it from the 10–11 digit trade-id columns.
         const price = Number(cols[1]);
-        const time = Number(cols[4]);
-        if (cols.length >= 5 && price > 0 && Number.isFinite(time) && time > 1e11) {
+        const epochIdx = cols.findIndex(
+          (c, i) => i > 0 && /^\d{13,}$/.test(c.trim()) && Number(c) >= 1e12
+        );
+        if (cols.length >= 5 && price > 0 && epochIdx !== -1) {
           priceIdx = 1;
-          timeIdx = 4;
+          timeIdx = epochIdx;
           return true; // this line is data
         }
         throw new Error(

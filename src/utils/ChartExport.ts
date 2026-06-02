@@ -21,6 +21,10 @@ export interface ChartOptions {
   height?: number;
   title?: string;
   subtitle?: string;
+  /** Override the auto legend (e.g. when overlaying many same-group curves). */
+  legendItems?: { label: string; color: string }[];
+  /** Use a logarithmic balance axis (for $0 → millions divergence). */
+  logScale?: boolean;
 }
 
 export interface EquityCurve {
@@ -120,11 +124,10 @@ export class ChartExport {
     const bals = pts.map((p) => p.balance);
     const tMin = minOf(times);
     const tMax = maxOf(times);
-    let yMin = Math.min(series.startBalance, minOf(bals));
+    // Balances are never negative — anchor the axis at 0 so the magnitude is honest.
+    let yMin = 0;
     let yMax = Math.max(series.startBalance, maxOf(bals));
-    const pad = (yMax - yMin) * 0.08 || Math.max(1, yMax * 0.05);
-    yMin -= pad;
-    yMax += pad;
+    yMax += yMax * 0.08 || 1;
 
     const x = (t: number) =>
       m.left + (tMax === tMin ? pw / 2 : ((t - tMin) / (tMax - tMin)) * pw);
@@ -225,22 +228,27 @@ export class ChartExport {
     const bals = allPts.map((p) => p.balance);
     const tMin = minOf(times);
     const tMax = maxOf(times);
-    let yMin = Math.min(startBalance, minOf(bals));
-    let yMax = Math.max(startBalance, maxOf(bals));
-    const pad = (yMax - yMin) * 0.08 || Math.max(1, yMax * 0.05);
-    yMin -= pad;
-    yMax += pad;
+
+    // Linear axis anchors at 0; log axis spans a $0→millions divergence (balances
+    // are floored to a small positive value so wiped-out curves stay on-chart).
+    const log = options.logScale ?? false;
+    const floor = Math.max(1, startBalance * 1e-3);
+    const tf = (b: number) => (log ? Math.log10(Math.max(b, floor)) : b);
+    let yMin = log ? tf(floor) : 0;
+    let yMax = tf(Math.max(startBalance, maxOf(bals)));
+    yMax += log ? 0.04 * (yMax - yMin) || 0.2 : yMax * 0.08 || 1;
 
     const x = (t: number) =>
       m.left + (tMax === tMin ? pw / 2 : ((t - tMin) / (tMax - tMin)) * pw);
     const y = (b: number) =>
-      m.top + (yMax === yMin ? ph / 2 : (1 - (b - yMin) / (yMax - yMin)) * ph);
+      m.top + (yMax === yMin ? ph / 2 : (1 - (tf(b) - yMin) / (yMax - yMin)) * ph);
 
     let grid = "";
     const yTicks = 5;
     for (let i = 0; i <= yTicks; i++) {
-      const bal = yMin + ((yMax - yMin) * i) / yTicks;
-      const yy = y(bal);
+      const vPos = yMin + ((yMax - yMin) * i) / yTicks;
+      const bal = log ? Math.pow(10, vPos) : vPos;
+      const yy = m.top + (1 - i / yTicks) * ph;
       grid +=
         `<line x1="${m.left}" y1="${yy.toFixed(1)}" x2="${m.left + pw}" y2="${yy.toFixed(1)}" stroke="#e5e7eb" stroke-width="1"/>` +
         `<text x="${m.left - 10}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="#6b7280">${fmt(bal)}</text>`;
@@ -259,17 +267,24 @@ export class ChartExport {
       })
       .join("\n  ");
 
-    // Legend (sorted best → worst), right panel.
+    // Legend (right panel). A custom legend keeps it readable when overlaying
+    // many same-group curves; otherwise list each curve sorted best → worst.
     const legendX = m.left + pw + 18;
-    const ordered = curves
-      .map((c, i) => ({ c, color: c.color ?? PALETTE[i % PALETTE.length] }))
-      .sort((a, b) => b.c.finalBalance - a.c.finalBalance);
-    const legend = ordered
+    const legendRows = options.legendItems
+      ? options.legendItems.map((it) => ({ label: it.label, color: it.color }))
+      : curves
+          .map((c, i) => ({ c, color: c.color ?? PALETTE[i % PALETTE.length] }))
+          .sort((a, b) => b.c.finalBalance - a.c.finalBalance)
+          .map((e) => ({
+            label: `${e.c.label}  ${fmt(e.c.finalBalance)}`,
+            color: e.color,
+          }));
+    const legend = legendRows
       .map((e, row) => {
         const yy = m.top + 6 + row * 22;
         return (
           `<line x1="${legendX}" y1="${yy}" x2="${legendX + 22}" y2="${yy}" stroke="${e.color}" stroke-width="3"/>` +
-          `<text x="${legendX + 30}" y="${yy + 4}" font-size="12.5" fill="#374151">${esc(e.c.label)}  ${fmt(e.c.finalBalance)}</text>`
+          `<text x="${legendX + 30}" y="${yy + 4}" font-size="12.5" fill="#374151">${esc(e.label)}</text>`
         );
       })
       .join("\n  ");
@@ -325,11 +340,13 @@ export class ChartExport {
     const times = ticks.map((p) => p.time);
     const tMin = minOf(times);
     const tMax = maxOf(times);
-    const prices = ticks.map((p) => p.price);
-    const lvls = allOrders.flatMap((o) => [o.entry, o.stopLoss, o.takeProfit]);
-    let yMin = minOf([...prices, ...lvls]);
-    let yMax = maxOf([...prices, ...lvls]);
-    const pad = (yMax - yMin) * 0.06 || 1;
+    // Zoom to the TRADE region (entries / SL / TP), not the full price excursion,
+    // so the zones and the recovery staircase are visible. The price line is
+    // clipped to this window (it shows local context, not a squashed full range).
+    const lvls = allOrders.flatMap((o) => [o.entry, o.stopLoss, o.takeProfit, o.exitPrice]);
+    let yMin = minOf(lvls);
+    let yMax = maxOf(lvls);
+    const pad = (yMax - yMin) * 0.12 || 1;
     yMin -= pad;
     yMax += pad;
 
@@ -383,30 +400,36 @@ export class ChartExport {
         .join(" ");
       layers += `<polyline points="${zig}" fill="none" stroke="#94a3b8" stroke-width="1.2"/>`;
 
-      // Each leg: exit marker, entry circle, lot label.
+      // The winning breakout: a single line from the closing leg's entry to the
+      // take-profit it reached (intermediate exits are the next entries, already
+      // drawn by the zigzag — so no per-leg dangling lines).
+      const close = s.orders[s.orders.length - 1];
+      if (close && close.hit !== "open") {
+        const cColor = close.hit === "tp" ? "#16a34a" : "#dc2626";
+        const lx = x(close.fillTime);
+        const ly = y(close.entry);
+        const cxp = x(close.exitTime);
+        const cyp = y(close.exitPrice);
+        layers +=
+          `<line x1="${lx.toFixed(1)}" y1="${ly.toFixed(1)}" x2="${cxp.toFixed(1)}" y2="${cyp.toFixed(1)}" stroke="${cColor}" stroke-width="1.8"/>` +
+          `<circle cx="${cxp.toFixed(1)}" cy="${cyp.toFixed(1)}" r="4.5" fill="${cColor}"/>`;
+      }
+
+      // Numbered entries with their lot size.
       for (const o of s.orders) {
         const ex = x(o.fillTime);
         const ey = y(o.entry);
-        const xx = x(o.exitTime);
-        const xy = y(o.exitPrice);
-        const hitColor = o.hit === "tp" ? "#16a34a" : o.hit === "sl" ? "#dc2626" : "#94a3b8";
-        // line from entry to its exit point + exit dot
         layers +=
-          `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${xx.toFixed(1)}" y2="${xy.toFixed(1)}" stroke="${hitColor}" stroke-width="1" stroke-opacity="0.5"/>` +
-          `<circle cx="${xx.toFixed(1)}" cy="${xy.toFixed(1)}" r="3" fill="${hitColor}"/>`;
-        // lot-size label above the entry
-        layers += `<text x="${ex.toFixed(1)}" y="${(ey - 14).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="#475569">${o.side === "buy" ? "L" : "S"} ${o.quantity.toPrecision(3)}</text>`;
-        // numbered entry circle
-        const eColor = o.side === "buy" ? buyColor : sellColor;
-        layers +=
-          `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="9" fill="#e7dcc4" stroke="${eColor}" stroke-width="2"/>` +
+          `<text x="${ex.toFixed(1)}" y="${(ey - 14).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="#475569">${o.side === "buy" ? "L" : "S"} ${o.quantity.toPrecision(3)}</text>` +
+          `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="9" fill="#e7dcc4" stroke="${o.side === "buy" ? buyColor : sellColor}" stroke-width="2"/>` +
           `<text x="${ex.toFixed(1)}" y="${(ey + 3.5).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#3f3f46">${o.step}</text>`;
       }
 
-      // Series PnL annotation near the close.
+      // Series PnL annotation at the close point.
       const net = s.netProfit;
       const nColor = net >= 0 ? "#16a34a" : "#dc2626";
-      layers += `<text x="${t1.toFixed(1)}" y="${(y(topTP) - 8).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="700" fill="${nColor}">S${s.seriesId} ${net >= 0 ? "+" : ""}${fmt(net)}</text>`;
+      const labelY = close ? y(close.exitPrice) - 8 : y(topTP) - 8;
+      layers += `<text x="${(x((close ?? s.orders[0]).exitTime) + 6).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="start" font-size="11.5" font-weight="700" fill="${nColor}">S${s.seriesId} ${net >= 0 ? "+" : ""}${fmt(net)}</text>`;
 
       // Right info panel row.
       const py = m.top + 8 + si * 58;
@@ -424,10 +447,11 @@ export class ChartExport {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="ui-sans-serif, system-ui, sans-serif">
   <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <defs><clipPath id="plot"><rect x="${m.left}" y="${m.top}" width="${pw}" height="${ph}"/></clipPath></defs>
   <text x="${m.left}" y="26" font-size="17" font-weight="700" fill="#111827">${esc(input.title ?? "Zone Recovery — trades")}</text>
   <text x="${m.left}" y="45" font-size="12" fill="#6b7280">${esc(input.subtitle ?? "price (grey) · gap zone · TP envelope (green) · numbered entries with lots")}</text>
   ${grid}
-  <polyline points="${priceLine}" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+  <polyline points="${priceLine}" fill="none" stroke="#cbd5e1" stroke-width="1" clip-path="url(#plot)"/>
   ${layers}
   ${panel}
   ${xLabels}
@@ -438,6 +462,187 @@ export class ChartExport {
   /** Write the illustrative trades SVG to disk. */
   static writeTradesSvg(input: TradesChartInput, filePath: string): string {
     const svg = ChartExport.tradesSvg(input);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, svg);
+    return filePath;
+  }
+
+  /**
+   * Schematic "how it works" for ONE recovery series (CAP-diagram style): a
+   * step-indexed x-axis (not time), so the alternating entries, the growing lot
+   * sizes, the two zone lines, the take-profit corridor and the final breakout
+   * are always clearly visible regardless of how fast the series filled.
+   */
+  static recoverySchematicSvg(
+    s: VizSeries,
+    options: ChartOptions = {}
+  ): string {
+    const W = options.width ?? 1080;
+    const H = options.height ?? 600;
+    const m = { top: 64, right: 150, bottom: 54, left: 78 };
+    const pw = W - m.left - m.right;
+    const ph = H - m.top - m.bottom;
+    const o = s.orders;
+    const n = o.length;
+
+    const A = maxOf(o.map((d) => d.entry)); // upper zone line
+    const B = minOf(o.map((d) => d.entry)); // lower zone line
+    const topTP = maxOf(o.map((d) => d.takeProfit));
+    const botTP = minOf(o.map((d) => d.takeProfit));
+    const close = o[n - 1];
+    let yMin = Math.min(botTP, B, close.exitPrice);
+    let yMax = Math.max(topTP, A, close.exitPrice);
+    const pad = (yMax - yMin) * 0.14 || 1;
+    yMin -= pad;
+    yMax += pad;
+
+    const y = (p: number) => m.top + (1 - (p - yMin) / (yMax - yMin)) * ph;
+    // Entries occupy the left ~78%; the breakout extends to the right edge.
+    const ex = (i: number) => m.left + (n <= 1 ? 0.12 : (i / (n - 1)) * pw * 0.74);
+
+    let grid = "";
+    for (let i = 0; i <= 5; i++) {
+      const p = yMin + ((yMax - yMin) * i) / 5;
+      const yy = y(p);
+      grid +=
+        `<line x1="${m.left}" y1="${yy.toFixed(1)}" x2="${m.left + pw}" y2="${yy.toFixed(1)}" stroke="#eef2f7" stroke-width="1"/>` +
+        `<text x="${m.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#94a3b8">${fmt(p)}</text>`;
+    }
+
+    const xL = m.left;
+    const xR = m.left + pw;
+    // Gap zone + zone lines + take-profit corridor (full width).
+    let layers =
+      `<rect x="${xL}" y="${y(A).toFixed(1)}" width="${pw}" height="${(y(B) - y(A)).toFixed(1)}" fill="#64748b" fill-opacity="0.09"/>` +
+      `<line x1="${xL}" y1="${y(A).toFixed(1)}" x2="${xR}" y2="${y(A).toFixed(1)}" stroke="#2563eb" stroke-width="1.4"/>` +
+      `<line x1="${xL}" y1="${y(B).toFixed(1)}" x2="${xR}" y2="${y(B).toFixed(1)}" stroke="#dc2626" stroke-width="1.4"/>` +
+      `<line x1="${xL}" y1="${y(topTP).toFixed(1)}" x2="${xR}" y2="${y(topTP).toFixed(1)}" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="7 4"/>` +
+      `<line x1="${xL}" y1="${y(botTP).toFixed(1)}" x2="${xR}" y2="${y(botTP).toFixed(1)}" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="7 4"/>` +
+      `<text x="${xR}" y="${(y(topTP) - 6).toFixed(1)}" text-anchor="end" font-size="11" fill="#16a34a">Take-Profit</text>` +
+      `<text x="${xR}" y="${(y(botTP) + 14).toFixed(1)}" text-anchor="end" font-size="11" fill="#16a34a">Take-Profit</text>`;
+
+    // Zigzag through the entries.
+    const zig = o.map((d, i) => `${ex(i).toFixed(1)},${y(d.entry).toFixed(1)}`).join(" ");
+    layers += `<polyline points="${zig}" fill="none" stroke="#9ca3af" stroke-width="1.4"/>`;
+
+    // Breakout from the closing entry to its take-profit.
+    const cColor = close.hit === "tp" ? "#16a34a" : "#dc2626";
+    const bx = Math.min(ex(n - 1) + pw * 0.16, xR);
+    layers +=
+      `<line x1="${ex(n - 1).toFixed(1)}" y1="${y(close.entry).toFixed(1)}" x2="${bx.toFixed(1)}" y2="${y(close.exitPrice).toFixed(1)}" stroke="${cColor}" stroke-width="2"/>` +
+      `<circle cx="${bx.toFixed(1)}" cy="${y(close.exitPrice).toFixed(1)}" r="5" fill="${cColor}"/>`;
+
+    // Numbered entries with lot size.
+    o.forEach((d, i) => {
+      const cx = ex(i);
+      const cy = y(d.entry);
+      const above = d.side === "buy";
+      layers +=
+        `<text x="${cx.toFixed(1)}" y="${(above ? cy - 16 : cy + 24).toFixed(1)}" text-anchor="middle" font-size="11" fill="#475569">${d.side === "buy" ? "Long" : "Short"} ${d.quantity.toPrecision(3)}</text>` +
+        `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="11" fill="#e7dcc4" stroke="${d.side === "buy" ? "#16a34a" : "#dc2626"}" stroke-width="2"/>` +
+        `<text x="${cx.toFixed(1)}" y="${(cy + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#3f3f46">${d.step}</text>`;
+    });
+
+    const nColor = s.netProfit >= 0 ? "#16a34a" : "#dc2626";
+    const sub =
+      options.subtitle ??
+      `${n} steps · first trade loses, each larger hedge recovers until a take-profit closes the whole series`;
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="ui-sans-serif, system-ui, sans-serif">
+  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <text x="${m.left}" y="26" font-size="17" font-weight="700" fill="#111827">${esc(options.title ?? "Zone Recovery — how it works")}</text>
+  <text x="${m.left}" y="45" font-size="12" fill="#6b7280">${esc(sub)}</text>
+  ${grid}
+  ${layers}
+  <text x="${m.left + pw + 14}" y="${m.top + 6}" font-size="13" font-weight="700" fill="#334155">Series ${s.seriesId}</text>
+  <text x="${m.left + pw + 14}" y="${m.top + 26}" font-size="12" fill="${nColor}">net ${s.netProfit >= 0 ? "+" : ""}${fmt(s.netProfit)}</text>
+  <text x="${m.left + pw + 14}" y="${m.top + 44}" font-size="12" fill="#64748b">gross ${s.grossProfit >= 0 ? "+" : ""}${fmt(s.grossProfit)}</text>
+  <text x="${m.left + pw + 14}" y="${m.top + 62}" font-size="12" fill="#64748b">${n} hedge steps</text>
+</svg>
+`;
+  }
+
+  static writeRecoverySchematicSvg(
+    s: VizSeries,
+    filePath: string,
+    options: ChartOptions = {}
+  ): string {
+    const svg = ChartExport.recoverySchematicSvg(s, options);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, svg);
+    return filePath;
+  }
+
+  /**
+   * Vertical bar chart anchored at zero — green bars for positive values, red
+   * for negative (or per-bar colour). Used for the per-VIP net-PnL proof.
+   */
+  static barChartSvg(
+    bars: { label: string; value: number; color?: string }[],
+    options: ChartOptions & { valueSuffix?: string } = {}
+  ): string {
+    const W = options.width ?? 1040;
+    const H = options.height ?? 540;
+    const m = { top: 64, right: 28, bottom: 64, left: 86 };
+    const pw = W - m.left - m.right;
+    const ph = H - m.top - m.bottom;
+
+    const values = bars.map((b) => b.value);
+    let yMax = Math.max(0, maxOf(values));
+    let yMin = Math.min(0, minOf(values));
+    const span = yMax - yMin || 1;
+    yMax += span * 0.12;
+    yMin -= span * 0.08;
+    const y = (v: number) => m.top + (1 - (v - yMin) / (yMax - yMin)) * ph;
+    const y0 = y(0);
+
+    let grid = "";
+    for (let i = 0; i <= 5; i++) {
+      const v = yMin + ((yMax - yMin) * i) / 5;
+      const yy = y(v);
+      grid +=
+        `<line x1="${m.left}" y1="${yy.toFixed(1)}" x2="${m.left + pw}" y2="${yy.toFixed(1)}" stroke="#eef2f7" stroke-width="1"/>` +
+        `<text x="${m.left - 10}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="11.5" fill="#94a3b8">${fmt(v)}</text>`;
+    }
+
+    const n = bars.length;
+    const slot = pw / n;
+    const bw = Math.min(64, slot * 0.62);
+    let rects = "";
+    bars.forEach((b, i) => {
+      const cx = m.left + slot * (i + 0.5);
+      const color = b.color ?? (b.value >= 0 ? "#16a34a" : "#dc2626");
+      const top = Math.min(y(b.value), y0);
+      const h = Math.abs(y(b.value) - y0);
+      const labelY = b.value >= 0 ? top - 7 : top + h + 15;
+      rects +=
+        `<rect x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, 0.5).toFixed(1)}" fill="${color}" rx="2"/>` +
+        `<text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#334155">${b.value >= 0 ? "+" : ""}${fmt(b.value)}${esc(options.valueSuffix ?? "")}</text>` +
+        `<text x="${cx.toFixed(1)}" y="${(H - m.bottom + 18).toFixed(1)}" text-anchor="middle" font-size="11.5" fill="#475569">${esc(b.label)}</text>`;
+    });
+
+    // Emphasised zero baseline.
+    const zero = `<line x1="${m.left}" y1="${y0.toFixed(1)}" x2="${m.left + pw}" y2="${y0.toFixed(1)}" stroke="#334155" stroke-width="1.4"/>`;
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="ui-sans-serif, system-ui, sans-serif">
+  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <text x="${m.left}" y="28" font-size="18" font-weight="700" fill="#111827">${esc(options.title ?? "")}</text>
+  <text x="${m.left}" y="48" font-size="12.5" fill="#6b7280">${esc(options.subtitle ?? "")}</text>
+  ${grid}
+  ${rects}
+  ${zero}
+</svg>
+`;
+  }
+
+  /** Write a bar chart SVG to disk. */
+  static writeBarChartSvg(
+    bars: { label: string; value: number; color?: string }[],
+    filePath: string,
+    options: ChartOptions & { valueSuffix?: string } = {}
+  ): string {
+    const svg = ChartExport.barChartSvg(bars, options);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, svg);
     return filePath;
