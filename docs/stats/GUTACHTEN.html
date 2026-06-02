@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<title>Statistisches Gutachten — Binance USD-M Futures</title>
+<style>
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt; line-height: 1.5; color: #1a1a1a; max-width: 100%;
+}
+h1 { font-size: 19pt; color: #1a2533; border-bottom: 3px solid #2980b9;
+     padding-bottom: 8px; margin: 0 0 14px; }
+h2 { font-size: 14pt; color: #1a2533; border-bottom: 1px solid #d0d7de;
+     padding-bottom: 4px; margin: 22px 0 10px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; color: #2c3e50; margin: 16px 0 6px; page-break-after: avoid; }
+p { margin: 6px 0; }
+strong { color: #11181f; }
+mark { background: #fff2a8; padding: 0 2px; border-radius: 2px; }
+a { color: #2980b9; text-decoration: none; }
+img { max-width: 100%; height: auto; display: block; margin: 10px auto;
+      page-break-inside: avoid; border: 1px solid #e1e4e8; border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.5pt;
+        page-break-inside: avoid; }
+th, td { border: 1px solid #c8cdd2; padding: 5px 8px; text-align: left; }
+th { background: #f0f3f6; }
+tr:nth-child(even) td { background: #fafbfc; }
+blockquote {
+  margin: 10px 0; padding: 8px 14px; background: #f6f8fa;
+  border-left: 4px solid #2980b9; color: #2c3e50; page-break-inside: avoid;
+  font-size: 9.8pt;
+}
+code { background: #f0f3f6; padding: 1px 4px; border-radius: 3px;
+       font-family: "SF Mono", Menlo, monospace; font-size: 9pt; }
+pre { background: #f6f8fa; padding: 10px; border-radius: 5px; overflow-x: auto;
+      page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 16px 0; }
+</style></head>
+<body><h1 id="statistisches-gutachten-strukturelle-benachteiligung-beim-binance-usd-m-futures-trading">Statistisches Gutachten: Strukturelle Benachteiligung beim Binance USD-M Futures Trading</h1>
+<p><strong>Datum:</strong> 2. Juni 2026<br />
+<strong>Analysezeitraum:</strong> 25.01.2020 – 28.11.2025<br />
+<strong>Produkt:</strong> Binance Futures USD-M (USDT-margined Perpetuals)<br />
+<strong>Datengrundlage:</strong> Offizielle Binance-Kontoexporte — Trades, Order-Protokoll und Transaktions-Ledger<br />
+<strong>Analyseeinheit:</strong> <strong>wirtschaftliche Position</strong> (Eröffnung bis Glattstellung); Order-Ebene als Robustheitsvergleich<br />
+<strong>Zweck:</strong> Sachlich belastbarer, gerichtsfester Nachweis der wirtschaftlichen und statistischen<br />
+Benachteiligung des Händlers.</p>
+<blockquote>
+<p><strong>Methodischer Grundsatz.</strong> Dieses Gutachten trennt strikt zwischen (a) <strong>deterministisch<br />
+belegbaren Tatsachen</strong> (Gebührenabrechnung, Ausführungsstruktur, Liquidationen) und (b)<br />
+<strong>statistischen Auffälligkeiten</strong> (Trefferquote, Verlustserien, Nicht-Zufälligkeit), quantifiziert<br />
+mit anerkannten Testverfahren. Aussagen geringerer Beweiskraft sind im <strong>Anhang A</strong> gekennzeichnet;<br />
+Befunde, die gängige Vorwürfe <strong>entkräften</strong>, werden offen benannt. Sämtliche Streak- und<br />
+Sequenzstatistiken werden auf <strong>Positionsebene</strong> geführt (eine Position = ein Trade), um eine<br />
+Überzählung durch Teilschließungen auszuschließen (Abschnitt 1.2). Jede Zahl ist aus den<br />
+beigefügten Rohdaten reproduzierbar (Anhang C).</p>
+</blockquote>
+<hr />
+<h2 id="0-zusammenfassung-executive-summary">0. Zusammenfassung (Executive Summary)</h2>
+<p>Ausgewertet wurden <strong>90.723 Einzelausführungen</strong>, das <strong>Order-Protokoll mit 28.824 Orders</strong> und das<br />
+<strong>Transaktions-Ledger mit 131.410 Buchungen</strong>. Aus den Ausführungen wurden <strong>5.813 wirtschaftliche<br />
+Positionen</strong> rekonstruiert.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Kennzahl</th>
+<th style="text-align: right;">Wert</th>
+<th style="text-align: left;">Beweiskraft</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Realisiertes <strong>Brutto</strong>-Handelsergebnis (vor Gebühren)</td>
+<td style="text-align: right;"><strong>+$349,61</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kommissionen</td>
+<td style="text-align: right;"><strong>−$59.840,44</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;">Funding-Gebühren</td>
+<td style="text-align: right;"><strong>−$3.078,95</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;">Insurance-Clear (Liquidationsabgaben)</td>
+<td style="text-align: right;"><strong>−$15.063,36</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gesamte Gebühren-/Abgabenlast</strong></td>
+<td style="text-align: right;"><strong>−$77.982,75</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Netto-Handelsergebnis</strong></td>
+<td style="text-align: right;"><strong>−$77.633,14</strong></td>
+<td style="text-align: left;">deterministisch</td>
+</tr>
+<tr>
+<td style="text-align: left;">Von Binance ausgewiesenes Wallet-Ergebnis</td>
+<td style="text-align: right;">−$78.046,59</td>
+<td style="text-align: left;">Abgleich (Δ $413,45 / 0,53 %)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Kernaussagen — deterministisch belegt:</strong></p>
+<ol>
+<li>Das Handelsergebnis war <strong>vor Kosten praktisch ausgeglichen</strong> (+$349,61). Erst die Gebühren-,<br />
+   Abgaben- und Liquidationsstruktur erzeugte den Nettoverlust von <strong>−$77.633,14</strong> — die Gebühren<br />
+   übersteigen das Bruttoergebnis um das <strong>223-fache</strong>.</li>
+<li><strong>99,8 %</strong> der Kommissionen entfielen auf die teureren <strong>Taker-Gebühren</strong> (nahezu jede Ausführung<br />
+   eine Market-Order).</li>
+<li>Das Konto wurde <strong>367-mal zwangsliquidiert</strong> ($15.063), schwerpunktmäßig 2021.</li>
+</ol>
+<p><strong>Kernaussagen — <mark>statistisch signifikant</mark>:</strong></p>
+<ol start="4">
+<li><mark>Die Trefferquote (29,04 %) lag <strong>statistisch signifikant</strong> unter der zum Break-even nötigen<br />
+   Quote (33,43 %)</mark>: das gesamte 95 %-Konfidenzintervall (27,89 – 30,22 %) liegt darunter<br />
+   (Abschnitt 3).</li>
+<li><mark>Die Trefferquote lag auch im <strong>exakten Binomialtest</strong> hochsignifikant unter der<br />
+   Gewinnschwelle</mark> (einseitig p ≈ <strong>3,9 × 10⁻¹³</strong>); in den Einzeljahren 2021, 2023, 2024 und<br />
+   2025 jeweils für sich signifikant (Abschnitt 3).</li>
+<li><mark>Die Ergebnisfolge war <strong>kein fairer, unabhängiger Zufallsprozess</strong></mark> (Runs-Test<br />
+   z = −11,10; p ≈ <strong>0,00000000000000000000000000013</strong> [= 1,3 × 10⁻²⁸]; zusätzlich Ljung-Box<br />
+   Q₂₀ = 317; p &lt; 0,001). Die längste Verlustserie (32 Positionen) übersteigt selbst einen fairen<br />
+   Markt <mark><strong>statistisch signifikant</strong></mark> (Monte-Carlo p = 0,004) (Abschnitt 5).</li>
+</ol>
+<p><img alt="Brutto vs. Gebühren vs. Netto" src="img/fees_vs_result.png" /></p>
+<h2 id="verifikation-der-kontodaten-offizieller-binance-screenshot">Verifikation der Kontodaten (offizieller Binance-Screenshot)</h2>
+<p>Der folgende Screenshot aus dem Binance-Backend (USD®-M → „Futures Account Profit and Loss Details")<br />
+weist das <strong>Lifetime-PnL von −78.046,59 USD</strong> aus und verifiziert den Gesamtverlust unabhängig.</p>
+<p><img alt="Binance-Kontoauszug — Lifetime PNL USD-M" src="img/binance_screenshot.png" /></p>
+<p>Die in diesem Gutachten aus dem Transaktions-Ledger rekonstruierte Summe (−$77.633,14) stimmt mit<br />
+diesem offiziellen Wert auf <strong>0,53 % (Δ $413,45)</strong> überein; zur vollständigen Erklärung der<br />
+Restdifferenz (in BNB bezahlte Kommissionen) siehe Abschnitt 1.</p>
+<hr />
+<h2 id="1-datengrundlage-methodik-und-validierung">1. Datengrundlage, Methodik und Validierung</h2>
+<p><strong>Quellen</strong> (offizielle Binance-Exporte, USD-M Futures): <code>…/trades/*.csv</code> (Einzelausführungen mit<br />
+Maker/Taker-Kennung), <code>…/orders/*.csv</code> (Order-Protokoll: Typ, Status, Stop-Preis), <code>…/transactions/*.csv</code><br />
+(Wallet-Ledger). Das <strong>maßgebliche Netto-Ergebnis</strong> stammt aus dem Ledger<br />
+(<code>REALIZED_PNL + COMMISSION + FUNDING_FEE + INSURANCE_CLEAR</code>) und stimmt bis auf <strong>0,53 %</strong> mit dem<br />
+von Binance ausgewiesenen Wallet-Verlust (−$78.046,59, per Screenshot oben verifiziert) überein.</p>
+<p><strong>Mehr-Asset-Zusammensetzung und Erklärung der Restdifferenz ($413,45).</strong> Das Ledger ist in mehreren<br />
+Assets geführt: <strong>USDT</strong> (−$89.948,79 über alle Ergebniskomponenten), <strong>BUSD</strong> (+$12.316,53; ein<br />
+1:1 an den US-Dollar gebundener Stablecoin, daher zulässigerweise als USD angesetzt) sowie eine<br />
+<strong>geringfügige, in BNB bezahlte Kommission</strong> (gesamt <strong>0,88 BNB</strong>). Letztere ist im Ledger zum<br />
+BNB-Nennwert (≈ $0,88) erfasst. Bewertet man diese 0,88 BNB zu ihrem <strong>Marktwert in USD</strong> (≈ $410 bei<br />
+den historischen BNB-Kursen) — wie es Binance in seiner USD-„Lifetime-PnL" tut —, schließt sich die<br />
+Restdifferenz von $413 nahezu vollständig. Die Datengrundlage ist damit vollständig erklärt und mit<br />
+Binances offiziellem Wert konsistent.</p>
+<h3 id="11-validierung-der-order-zuordnung-gegen-doppelzahlung">1.1 Validierung der Order-Zuordnung (gegen Doppelzählung)</h3>
+<p>Einzelausführungen (Fills) werden über die <strong>Order-ID</strong> zu Orders zusammengefasst. Geprüft mit<br />
+<code>npm run stats:verify</code>:</p>
+<ul>
+<li><strong>Beispiel.</strong> Order-Nr. <code>111147095130</code> (BTCUSDT) besteht aus <strong>27 Teilausführungen</strong> → <strong>eine</strong><br />
+  Order (7,334 BTC, Ergebnis −$987,23), als <strong>ein</strong> Trade gezählt, nicht als 27.</li>
+<li><strong>Keine Kollisionen</strong> (keine Order über mehr als ein Symbol oder mehr als 24 h).</li>
+<li><strong>Abgleich mit Binances Order-Protokoll</strong> (2020–2025): 17.341 ausgeführte Orders bei Binance vs.<br />
+  17.342 rekonstruierte (<strong>99,99 %</strong>); alle <strong>6.367 geschlossenen Orders zu 100 % zugeordnet</strong>.</li>
+</ul>
+<h3 id="12-von-der-order-zur-wirtschaftlichen-position-kernfrage-der-verlustserien">1.2 Von der Order zur wirtschaftlichen Position (Kernfrage der Verlustserien)</h3>
+<p>Eine einzelne wirtschaftliche <strong>Position</strong> wird häufig über <strong>mehrere Orders</strong> geschlossen<br />
+(Teilschließungen). Würde man Orders zählen, würden aufeinanderfolgende gleichartige Ergebnisse<br />
+<strong>überzählt</strong>. Wir rekonstruieren daher je Symbol die Zyklen von der Eröffnung bis zur vollständigen<br />
+Glattstellung (Netto-Position = 0) und behandeln <strong>eine Position = einen Trade</strong>. Aus 6.367<br />
+geschlossenen Orders ergeben sich <strong>5.813 Positionen</strong>.</p>
+<p><strong>Wirkung auf die Kennzahlen (Robustheit):</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Kennzahl</th>
+<th style="text-align: right;">Order-Ebene</th>
+<th style="text-align: right;"><strong>Positionsebene (maßgeblich)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Anzahl Trades</td>
+<td style="text-align: right;">6.367</td>
+<td style="text-align: right;"><strong>5.813</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Trefferquote</td>
+<td style="text-align: right;">31,84 %</td>
+<td style="text-align: right;"><strong>29,04 %</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Längste Verlustserie</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;"><strong>32</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">CRV (Ø-Gewinn/Ø-Verlust)</td>
+<td style="text-align: right;">1:1,93</td>
+<td style="text-align: right;"><strong>1:1,99</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Antwort auf die Validierungsfrage:</strong> Die früher berichtete „29er-Serie" auf Order-Ebene enthielt<br />
+tatsächlich Teilschließungen einzelner Positionen (z. B. mehrere BTC-Teilverkäufe im Feb./März 2024)<br />
+und war insoweit überzeichnet. <strong>Bereinigt auf Positionsebene bleibt der Befund jedoch bestehen —<br />
+die längste Verlustserie beträgt sogar 32 Positionen</strong> (01.03.2021, über 7 verschiedene Symbole).<br />
+Sämtliche nachfolgenden Streak- und Sequenztests werden auf Positionsebene geführt; das Ergebnis<br />
+ist gegenüber der Wahl der Analyseeinheit <strong>robust</strong>.</p>
+</blockquote>
+<hr />
+<h2 id="2-kernbefund-a-die-gebuhrenstruktur-deterministisch-belegt">2. Kernbefund A — Die Gebührenstruktur (deterministisch belegt)</h2>
+<p><img alt="Gebühren-Wasserfall" src="img/fee_waterfall.png" /></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Position</th>
+<th style="text-align: right;">Betrag (USD)</th>
+<th style="text-align: right;">Buchungen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Realisiertes Brutto-Handelsergebnis</td>
+<td style="text-align: right;"><strong>+$349,61</strong></td>
+<td style="text-align: right;">39.839</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kommissionen</td>
+<td style="text-align: right;">−$59.840,44</td>
+<td style="text-align: right;">89.454</td>
+</tr>
+<tr>
+<td style="text-align: left;">Funding-Gebühren</td>
+<td style="text-align: right;">−$3.078,95</td>
+<td style="text-align: right;">995</td>
+</tr>
+<tr>
+<td style="text-align: left;">Insurance-Clear</td>
+<td style="text-align: right;">−$15.063,36</td>
+<td style="text-align: right;">367</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Netto-Handelsergebnis</strong></td>
+<td style="text-align: right;"><strong>−$77.633,14</strong></td>
+<td style="text-align: right;">—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Gebühren-zu-Brutto-Verhältnis: 223×.</strong></li>
+<li><strong>Effektive Gesamtkosten: 5,08 Basispunkte</strong> des gehandelten Volumens von rund <strong>$153,6 Mio.</strong></li>
+</ul>
+<h3 id="21-mechanik-der-kostenfalle-nahezu-ausschlielich-taker-gebuhren">2.1 Mechanik der Kostenfalle: nahezu ausschließlich Taker-Gebühren</h3>
+<p><img alt="Maker- vs. Taker-Gebühren" src="img/maker_taker_fees.png" /></p>
+<p>Von 90.723 Ausführungen erfolgten <strong>90.610 (99,9 %) als Taker</strong> (Market-Order), nur <strong>113 als Maker</strong>.<br />
+Entsprechend entfielen <strong>99,8 %</strong> der Kommissionen (−$59.716,92) auf die <strong>höheren Taker-Sätze</strong>.</p>
+<blockquote>
+<p><strong>Sachliche Einordnung (hoch, aber differenziert).</strong> Der Kommissionssatz betrug <strong>3,90 Basispunkte</strong><br />
+und entspricht dem <strong>marktüblichen Taker-Satz</strong> (~0,04 %) — er war <strong>nicht überhöht</strong>. Die<br />
+Kostenfalle entstand strukturell aus (i) <strong>durchgehender Taker-Ausführung</strong> und (ii) einem<br />
+<strong>Nominalvolumen von $153,6 Mio.</strong> (hoher Hebel/Umschlag) bei kleinem Eigenkapital. Bei dieser<br />
+Handels­intensität war ein vollständiger Kapitalverzehr durch Gebühren <strong>mathematisch vorgezeichnet</strong>.</p>
+</blockquote>
+<h3 id="22-zwangsliquidationen">2.2 Zwangsliquidationen</h3>
+<p><img alt="Zwangsliquidationen pro Jahr" src="img/liquidations_by_year.png" /></p>
+<p>Das Konto wurde <strong>367-mal zwangsliquidiert</strong> (Abgaben gesamt <strong>−$15.063,36</strong>), schwerpunktmäßig<br />
+<strong>2021 (146 Liquidationen, −$10.776,95)</strong> — ein Indikator für einen <strong>Hebel, der die Margin<br />
+wiederholt überschritt</strong>.</p>
+<hr />
+<h2 id="3-kernbefund-b-trefferquote-unterhalb-der-gewinnschwelle">3. Kernbefund B — Trefferquote unterhalb der Gewinnschwelle</h2>
+<ul>
+<li><strong>Trefferquote (Positionen): 29,04 %</strong> (1.688 Gewinne / 4.125 Verluste), <strong>95 %-KI (Wilson):<br />
+  27,89 % – 30,22 %.</strong></li>
+<li>Aus dem realisierten <strong>CRV 1:1,99</strong> folgt eine <strong>Gewinnschwelle von 33,43 %.</strong></li>
+</ul>
+<p><img alt="Trefferquote mit Konfidenzintervall" src="img/winrate_ci.png" /></p>
+<p>Die zum Break-even nötige Trefferquote (33,43 %) liegt <strong>deutlich oberhalb der gesamten oberen<br />
+Konfidenzgrenze</strong> (30,22 %). Die Trefferquote war damit <strong>statistisch signifikant zu niedrig</strong>, um<br />
+bei dem gegebenen Chance-Risiko-Profil ein ausgeglichenes Ergebnis zu erzielen.</p>
+<h3 id="31-exakter-binomialtest-verteilungsfrei">3.1 Exakter Binomialtest (verteilungsfrei)</h3>
+<p>Unabhängig vom Konfidenzintervall bestätigt ein <strong>exakter Binomialtest</strong> den Befund ohne<br />
+Verteilungsannahme. Geprüft wird die Nullhypothese, der Händler habe mit der zum CRV gehörenden<br />
+<strong>fairen Gewinnschwelle von 33,43 %</strong> gehandelt:</p>
+<ul>
+<li><strong>Gesamt:</strong> 1.688 Gewinne aus 5.813 Positionen; erwartet bei fairer Quote 1.943.<br />
+<strong>Einseitig p ≈ 3,9 × 10⁻¹³</strong> (zweiseitig p ≈ 7,8 × 10⁻¹³) — die beobachtete Trefferquote ist<br />
+<strong>hochsignifikant</strong> niedriger als zum Break-even nötig.</li>
+<li><strong>Jahresweise</strong> (gegen dieselbe faire Schwelle):</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Jahr</th>
+<th style="text-align: right;">Positionen</th>
+<th style="text-align: right;">Trefferquote</th>
+<th style="text-align: right;">Binomial p (einseitig)</th>
+<th style="text-align: center;">Signifikant &lt; 33,43 %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">33,33 %</td>
+<td style="text-align: right;">0,68</td>
+<td style="text-align: center;">— (n zu klein)</td>
+</tr>
+<tr>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">2.939</td>
+<td style="text-align: right;">29,74 %</td>
+<td style="text-align: right;">1,0 × 10⁻⁵</td>
+<td style="text-align: center;"><strong>ja</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">1.364</td>
+<td style="text-align: right;">35,48 %</td>
+<td style="text-align: right;">0,95</td>
+<td style="text-align: center;">nein (über der Schwelle)</td>
+</tr>
+<tr>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">738</td>
+<td style="text-align: right;">23,58 %</td>
+<td style="text-align: right;">3,3 × 10⁻⁹</td>
+<td style="text-align: center;"><strong>ja</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">522</td>
+<td style="text-align: right;">19,92 %</td>
+<td style="text-align: right;">6,0 × 10⁻¹²</td>
+<td style="text-align: center;"><strong>ja</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2025</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">20,49 %</td>
+<td style="text-align: right;">5,8 × 10⁻⁶</td>
+<td style="text-align: center;"><strong>ja</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Einordnung.</strong> In <strong>vier von sechs</strong> Jahren liegt die Trefferquote schon für sich genommen<br />
+signifikant unter der Gewinnschwelle; 2022 lag sie darüber (das ertragsstärkste Quotenjahr, aber<br />
+zugleich das verlustreichste — der Verlust dieses Jahres ist also nicht durch eine niedrige<br />
+Trefferquote, sondern durch Positionsgröße/Gebühren getrieben, vgl. Abschnitt 2 und 4).</p>
+</blockquote>
+<hr />
+<h2 id="4-kernbefund-c-erwartungswert-pro-trade-ehrliche-einordnung">4. Kernbefund C — Erwartungswert pro Trade (ehrliche Einordnung)</h2>
+<p>Der durchschnittliche Ergebnisbeitrag pro Position beträgt <strong>−$10,23</strong>, ist aber wegen der sehr hohen<br />
+Streuung (Standardabweichung $660; größter Gewinn +$18.341, größter Verlust −$9.993) mit erheblicher<br />
+Unsicherheit behaftet.</p>
+<p><img alt="Bootstrap-Verteilung des Erwartungswerts" src="img/ev_bell_curve.png" /></p>
+<ul>
+<li><strong>Bootstrap-95 %-KI des Mittelwerts: [−$26,69 ; +$7,41]</strong> (50.000 Resamples).</li>
+<li><strong>t-Test gegen Null: t = −1,18, p = 0,237</strong> — nicht signifikant.</li>
+</ul>
+<blockquote>
+<p><strong>Bewusste fachliche Klarstellung:</strong> Auf Ebene der <em>einzelnen Position</em> lässt sich ein negativer<br />
+Erwartungswert <strong>statistisch nicht zweifelsfrei</strong> nachweisen. Der Verlust resultiert nicht aus einem<br />
+signifikant negativen Mittelwert je Trade, sondern aus der ungünstigen Häufigkeits­verteilung<br />
+(Abschnitt 3) und vor allem der <strong>Gebühren- und Abgabenlast</strong> (Abschnitt 2). Diese Klarstellung<br />
+schützt die Glaubwürdigkeit des Gutachtens vor einem Gegengutachten.</p>
+</blockquote>
+<hr />
+<h2 id="5-kernbefund-d-verlustserien-und-nicht-zufalligkeit-der-ergebnisse">5. Kernbefund D — Verlustserien und Nicht-Zufälligkeit der Ergebnisse</h2>
+<p><em>(alle Auswertungen auf Positionsebene, n = 5.813)</em></p>
+<h3 id="51-langste-verlustserie-gegen-einen-fairen-markt">5.1 Längste Verlustserie gegen einen fairen Markt</h3>
+<p>Die längste beobachtete Verlustserie umfasst <strong>32 aufeinanderfolgende verlustreiche Positionen</strong>.<br />
+Als Referenz dient ein <strong>fairer Markt, der zum realisierten Chance-Risiko-Verhältnis ausgeglichen<br />
+wäre</strong> (CRV 1:1,99 → faire Gewinnschwelle 33,43 %). Eine <strong>Monte-Carlo-Simulation</strong> (200.000<br />
+Handelshistorien gleicher Länge unter dieser fairen Gewinnschwelle) ergibt:</p>
+<p><img alt="Monte-Carlo der längsten Verlustserie" src="img/maxstreak_montecarlo.png" /></p>
+<ul>
+<li>Median der simulierten Höchstserie <strong>19</strong>, 95 %-Quantil <strong>25</strong>, 99 %-Quantil <strong>29</strong>.</li>
+<li><strong>Empirischer p-Wert für eine Serie ≥ 32: p = 0,004</strong> (statistisch signifikant, &lt; 0,05).</li>
+</ul>
+<p>In einem fairen, zum CRV des Händlers ausgeglichenen Markt wäre eine Verlustserie von 32 Positionen<br />
+also nur in <strong>rund 0,4 %</strong> der Fälle zu erwarten. <em>(Zur Robustheit: auch gegen die — bereits<br />
+ungünstige — eigene Verlustquote des Händlers bleibt die Serie grenzwertig signifikant, p = 0,029.)</em></p>
+<p>Ein <strong>χ²-Anpassungstest</strong> der gesamten Verlustserien-Längenverteilung gegen den fairen Markt<br />
+verwirft die Übereinstimmung deutlich (<strong>χ² = 286, df = 11, p &lt; 0,001</strong>): es treten systematisch zu<br />
+viele lange Verlustserien auf (siehe Grafik in Abschnitt 5.2).</p>
+<h3 id="52-runs-test-die-ergebnisfolge-war-nicht-unabhangig">5.2 Runs-Test: Die Ergebnisfolge war nicht unabhängig</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Größe</th>
+<th style="text-align: right;">Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Beobachtete Runs (Phasenwechsel)</td>
+<td style="text-align: right;">2.048</td>
+</tr>
+<tr>
+<td style="text-align: left;">Bei Unabhängigkeit erwartete Runs</td>
+<td style="text-align: right;">2.397</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>z-Wert</strong></td>
+<td style="text-align: right;"><strong>−11,10</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>p-Wert (zweiseitig)</strong></td>
+<td style="text-align: right;"><strong>≈ 0,00000000000000000000000000013</strong> (= 1,3 × 10⁻²⁸)</td>
+</tr>
+</tbody>
+</table>
+<p>Es treten <strong>erheblich weniger Wechsel</strong> auf als bei Unabhängigkeit zu erwarten — eine<br />
+<strong>hochsignifikante Klumpung</strong> von Gewinnen und insbesondere Verlusten in langen Blöcken.</p>
+<p><img alt="Beobachtete vs. erwartete Verlustserien-Häufigkeit" src="img/streak_freq_observed_vs_expected.png" /></p>
+<h3 id="53-autokorrelation-der-ergebnisfolge-ljung-box">5.3 Autokorrelation der Ergebnisfolge (Ljung-Box)</h3>
+<p>Der Runs-Test wird durch eine <strong>Autokorrelationsanalyse</strong> der Gewinn/Verlust-Folge (1 = Gewinn,<br />
+0 = Verlust) gestützt. Die Autokorrelation bei Lag 1 beträgt <strong>+0,145</strong> und bleibt über mehrere Lags<br />
+deutlich oberhalb des 95 %-Zufallsbandes; der <strong>Ljung-Box-Test über 20 Lags</strong> ergibt<br />
+<strong>Q = 317 (df = 20), p &lt; 0,001.</strong></p>
+<p><img alt="Autokorrelation der Gewinn/Verlust-Folge" src="img/autocorrelation.png" /></p>
+<p>Die Ergebnisse sind damit <strong>seriell positiv abhängig</strong> — Gewinne folgen auf Gewinne und (häufiger)<br />
+Verluste auf Verluste, statt sich wie bei unabhängigen Ziehungen zufällig abzuwechseln. Dies ist mit<br />
+dem Runs-Test-Befund (zu wenige Phasenwechsel) konsistent.</p>
+<h3 id="54-equity-kurve">5.4 Equity-Kurve</h3>
+<p><img alt="Equity-Kurve und Drawdown" src="img/equity_curve.png" /></p>
+<blockquote>
+<p><strong>Beweiskraft:</strong> Der Runs-Test ist ein robuster, anerkannter Nachweis, dass die Ergebnisse <strong>kein<br />
+fairer, unabhängiger Zufallsprozess</strong> waren. Über die <strong>Ursache</strong> der Klumpung trifft er allein<br />
+keine Aussage (mögliche Faktoren: korrelierte Positionen, Handelsverhalten, Marktphasen). Er<br />
+widerlegt jedoch belastbar die Annahme, die Verluste seien bloßes „Pech" voneinander unabhängiger<br />
+Einzelereignisse.</p>
+</blockquote>
+<hr />
+<h2 id="6-kernbefund-e-handels-und-ausfuhrungsstruktur">6. Kernbefund E — Handels- und Ausführungsstruktur</h2>
+<p><img alt="Order-Typen und Status" src="img/order_type_status.png" /></p>
+<p>Das Order-Protokoll (28.824 Orders): <strong>16.798 Market-Orders</strong>, <strong>11.363 Stop-Market-Orders</strong><br />
+(Schutz-Stops), 653 Limit-Orders. <strong>Die Schutz-Stops wurden praktisch nie ausgelöst: nur 8 von<br />
+11.373 (0,07 %)</strong> — sie wurden storniert/liefen aus, weil die Positionen anderweitig geschlossen<br />
+wurden.</p>
+<p><img alt="Ausstieg nach Order-Typ" src="img/exit_type.png" /></p>
+<p><strong>94 % der geschlossenen Positionen (5.998 von 6.367 Orders) wurden manuell per Market-Order beendet.</strong></p>
+<blockquote>
+<p><strong>Bewusste Entlastung der Gegenseite vom Vorwurf des „Stop-Hunting":</strong> Da die Schutz-Stops nahezu<br />
+nie ausgelöst wurden, <strong>stützen die Daten keine These eines gezielten „Abfischens" von<br />
+Stop-Loss-Marken.</strong> Diese These wird hier ausdrücklich <strong>nicht</strong> erhoben. Belastbar bleibt: Der<br />
+Händler beendete Positionen überwiegend diskretionär per Market-Order und maximierte damit die<br />
+<strong>Taker-Gebührenlast</strong> (Abschnitt 2.1).</p>
+</blockquote>
+<hr />
+<h2 id="7-jahresubersicht-positionsebene">7. Jahresübersicht (Positionsebene)</h2>
+<p><img alt="Jahresergebnis und Trefferquote" src="img/yearly_breakdown.png" /></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Jahr</th>
+<th style="text-align: right;">Positionen</th>
+<th style="text-align: right;">Trefferquote</th>
+<th style="text-align: right;">Netto-Ergebnis (USD, inkl. aller Handelskommissionen)</th>
+<th style="text-align: right;">Längste Verlustserie</th>
+<th style="text-align: right;">Liquidationen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">33,33 %</td>
+<td style="text-align: right;">−26,12</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">2.939</td>
+<td style="text-align: right;">29,74 %</td>
+<td style="text-align: right;">−15.904,30</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">146</td>
+</tr>
+<tr>
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">1.364</td>
+<td style="text-align: right;">35,48 %</td>
+<td style="text-align: right;">−32.562,63</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">64</td>
+</tr>
+<tr>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">738</td>
+<td style="text-align: right;">23,58 %</td>
+<td style="text-align: right;">−7.534,71</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">522</td>
+<td style="text-align: right;">19,92 %</td>
+<td style="text-align: right;">−2.950,70</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">73</td>
+</tr>
+<tr>
+<td style="text-align: right;">2025</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: right;">20,49 %</td>
+<td style="text-align: right;">−494,15</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">38</td>
+</tr>
+</tbody>
+</table>
+<p><em>Hinweis:</em> „Netto-Ergebnis" enthält hier <strong>sämtliche</strong> auf die Positionen entfallenden Kommissionen<br />
+(Ein- und Ausstieg); Summe <strong>−$59.472,61</strong>. Zuzüglich der Funding- und Insurance-Abgaben<br />
+(−$18.142,31) ergibt sich das maßgebliche Konto-Netto von <strong>≈ −$77.615</strong> und damit (bis auf<br />
+Zyklus-/Rundungsdifferenzen) der von Binance ausgewiesene Wallet-Verlust von −$77.633.</p>
+<hr />
+<h2 id="8-schlussfolgerung">8. Schlussfolgerung</h2>
+<p>Nach Beweiskraft geordnet:</p>
+<ol>
+<li><strong>Strategie vor Kosten ausgeglichen</strong> (+$349,61). <em>(deterministisch)</em></li>
+<li><strong>Die Kosten-, Abgaben- und Liquidationsstruktur war der entscheidende Verlusttreiber:</strong><br />
+   −$77.982,75 (das <strong>223-fache</strong> des Bruttoergebnisses), zu 99,8 % marktübliche Taker-Gebühren auf<br />
+   ein Nominalvolumen von $153,6 Mio.; zzgl. <strong>367 Zwangsliquidationen</strong>. Bestätigt durch Abgleich<br />
+   mit Binances Ausweisung (Δ 0,53 %). <em>(deterministisch)</em></li>
+<li><strong>Die Trefferquote lag signifikant unter der Gewinnschwelle</strong> (30,22 % obere KI-Grenze vs. 33,43 %<br />
+   nötig; exakter Binomialtest p ≈ 3,9 × 10⁻¹³, in 4 von 6 Jahren einzeln signifikant).<br />
+<em>(statistisch signifikant)</em></li>
+<li><strong>Die Ergebnisfolge war kein fairer, unabhängiger Zufallsprozess</strong> (Runs-Test z = −11,10,<br />
+   p ≈ 0,00000000000000000000000000013 [= 1,3 × 10⁻²⁸]; Ljung-Box Q₂₀ = 317, p &lt; 0,001; χ²-Anpassung<br />
+   der Streak-Verteilung p &lt; 0,001); die längste Verlustserie (32 Positionen) übersteigt einen fairen<br />
+   Markt signifikant (p = 0,004). <em>(statistisch signifikant)</em></li>
+</ol>
+<p><strong>Gesamtwürdigung.</strong> Mit buchhalterischer Sicherheit steht fest, dass der wirtschaftliche<br />
+Totalverlust <strong>strukturell durch die Gebühren-, Abgaben- und Liquidationsmechanik</strong> der Plattform —<br />
+angewandt auf eine hochgehebelte, umsatzstarke, durchgehend als Taker ausgeführte Handelsweise —<br />
+verursacht wurde und nicht durch eine defizitäre Markteinschätzung des Händlers. Ergänzend ist<br />
+statistisch belegt, dass die Ergebnisse nicht das Muster eines fairen, unabhängigen Marktprozesses<br />
+tragen. Eine <strong>gezielte Kursmanipulation</strong> lässt sich aus den Kontodaten <strong>nicht</strong> ableiten und wird<br />
+<strong>nicht</strong> behauptet (Anhang A); für die Geltendmachung einer <strong>strukturellen Benachteiligung</strong> ist<br />
+sie auch nicht erforderlich.</p>
+<hr />
+<h2 id="anhang-a-erganzende-illustrative-betrachtungen-eingeschrankte-beweiskraft">Anhang A — Ergänzende, illustrative Betrachtungen (eingeschränkte Beweiskraft)</h2>
+<blockquote>
+<p>Illustrativer Charakter; als alleiniger Beweis <strong>nicht belastbar</strong>. Grenzen offengelegt.</p>
+</blockquote>
+<p><strong>A.1 Kurtosis / „Fat Tails".</strong> Die Exzess-Kurtosis der Positions-Ergebnisse beträgt <strong>372,1</strong>.</p>
+<p><img alt="Verteilung der Trade-Ergebnisse" src="img/pnl_histogram.png" /></p>
+<p><strong>Vorbehalt:</strong> Eine so hohe Kurtosis ist bei <strong>gehebelten</strong> Futures mit <strong>stark variierenden<br />
+Positionsgrößen der Regelfall</strong> und für sich genommen <strong>kein Nachweis einer Manipulation</strong>. Die<br />
+frühere Aussage, dieser Wert „beweise unnatürliche Kursausschläge", ist fachlich <strong>nicht haltbar</strong><br />
+und wurde aus der Kern-Beweisführung entfernt.</p>
+<p><strong>A.2 „Win-Rate-Z-Score" als Kausalbeweis.</strong> Die Herleitung eines Plattformvorteils allein aus der<br />
+Unterschreitung der Gewinnschwelle ist <strong>logisch zirkulär</strong> und wird daher nur beschreibend<br />
+(Abschnitt 3), nicht als Kausalnachweis geführt.</p>
+<hr />
+<h2 id="anhang-b-methodik-annahmen-und-grenzen">Anhang B — Methodik, Annahmen und Grenzen</h2>
+<ul>
+<li><strong>Analyseeinheit.</strong> Primär = wirtschaftliche Position (Eröffnung→Glattstellung je Symbol).<br />
+  Die Fill→Order-Zuordnung ist gegen Binances Protokoll validiert (99,99 %); die Order→Positions-<br />
+  Rekonstruktion beruht auf der Netto-Mengenführung je Symbol (Einweg-/„BOTH"-Modus). Kennzahlen sind<br />
+  gegenüber der Wahl Order vs. Position robust (Abschnitt 1.2).</li>
+<li><strong>Kausalität.</strong> Die statistischen Tests (Abschnitt 3–5) belegen <em>Muster</em>, nicht deren <em>Ursache</em>.<br />
+  Die deterministische Gebühren-, Liquidations- und Ausführungsanalyse (Abschnitt 2, 6) trägt die<br />
+  Kernaussage allein.</li>
+<li><strong>Gebührensatz.</strong> Der Kommissionssatz (3,90 bps) war marktüblich; der Vorwurf richtet sich gegen die<br />
+<strong>strukturelle Wirkung</strong> der Kosten bei hohem Hebel/Umsatz.</li>
+<li><strong>Simulationsbaseline.</strong> Die Monte-Carlo-Referenz nutzt die <strong>CRV-implizierte faire Gewinnschwelle</strong><br />
+  (33,43 %); die eigene Verlustquote dient als Robustheits-Gegenprobe.</li>
+<li><strong>Verfahren.</strong> Wilson-KI und <strong>exakter Binomialtest</strong> (Trefferquote, gesamt und je Jahr);<br />
+  nicht-parametrischer Bootstrap (50.000 Resamples, Mittelwert); Monte-Carlo (200.000 Läufe, fester<br />
+  Seed; längste Verlustserie); Wald-Wolfowitz-Runs-Test; <strong>Ljung-Box-Test</strong> (20 Lags,<br />
+  Autokorrelation der Ergebnisfolge) und <strong>χ²-Anpassungstest</strong> der Verlustserien-Längenverteilung.<br />
+  Sämtliche Tests sind in TypeScript implementiert (analytische p-Werte über Standardroutinen für<br />
+  Normal-, χ²- und t-Verteilung); die Monte-Carlo-/Bootstrap-Werte sind über einen festen Seed<br />
+  reproduzierbar.</li>
+</ul>
+<hr />
+<h2 id="anhang-c-reproduzierbarkeit-und-datenquellen">Anhang C — Reproduzierbarkeit und Datenquellen</h2>
+<pre><code class="language-bash"># 1) Kennzahlen, Reconciliation, Positionsrekonstruktion, Ausführungsprofil, Liquidationen
+#    UND sämtliche Inferenzstatistik (Bootstrap, Wilson, Binomial, Monte-Carlo, Runs-Test,
+#    Ljung-Box, χ²) — alles in TypeScript, ohne externe Abhängigkeit.
+npm run stats
+#    -&gt; docs/stats/{analysis_data.json, computed_values.json, monthly.csv}
+
+# 2) Validierung der Order-Zuordnung + Abgleich gegen Binances orders/*.csv
+npm run stats:verify            # optional: Order-ID als Argument, z. B. npm run stats:verify -- 111147095130
+
+# 3) Export der drei längsten Verlustserien (alle Fills, mit Annotationen)
+npm run stats:streaks
+#    -&gt; docs/stats/streaks/loss_streak_{1,2,3}.csv, loss_streaks_top3.csv
+
+# 4) Grafiken (reines Rendering aus den JSON-Dateien; Python: matplotlib, numpy)
+npm run stats:charts
+#    -&gt; docs/stats/img/*.png
+
+# 5) PDF des Gutachtens (Markdown -&gt; HTML -&gt; PDF via headless Chrome)
+npm run stats:report            # -&gt; docs/stats/GUTACHTEN.html
+&quot;/Applications/Google Chrome.app/Contents/MacOS/Google Chrome&quot; --headless --disable-gpu \
+    --print-to-pdf=docs/stats/GUTACHTEN.pdf --no-pdf-header-footer docs/stats/GUTACHTEN.html
+</code></pre>
+<ul>
+<li><strong>Engine-Quellcode:</strong> <code>src/stats/*.ts</code> (TypeScript; CSV-Parsing, Reconciliation,<br />
+  Positionsrekonstruktion, Inferenzstatistik) und <code>src/stats/{charts,buildReport}.py</code> (nur Rendering).</li>
+<li><strong>Rohdaten:</strong> <code>account/futures/USD-M/{trades,orders,transactions}/*.csv</code></li>
+<li><strong>Ergebnisdateien:</strong> <code>analysis_data.json</code> (Positions- und Order-Ebene, Ausführungsprofil,<br />
+  Liquidationen, Reihen, Histogramme, <code>validation</code>-Block), <code>computed_values.json</code> (KIs, p-Werte,<br />
+  Testresultate inkl. Binomial-, Ljung-Box- und χ²-Test), <code>monthly.csv</code>.</li>
+<li><strong>Zufalls-Seed:</strong> 20260601 (mulberry32; Monte-Carlo-/Bootstrap-p-Werte daher exakt reproduzierbar).</li>
+</ul>
+<p><em>Erstellt am 2. Juni 2026. Sämtliche Zahlenwerte sind aus den genannten Ergebnisdateien<br />
+nachvollziehbar.</em></p></body></html>

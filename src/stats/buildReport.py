@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Render docs/stats/new/GUTACHTEN.md to a print-ready HTML (with embedded CSS) so it
-can be converted to PDF by headless Chrome. Images are referenced relatively, so the
-HTML is written next to the markdown (same dir as img/).
+Render docs/stats/GUTACHTEN.md to a print-ready HTML (embedded CSS) so it can be
+converted to PDF by headless Chrome. Images are referenced relatively, so the HTML
+is written next to the markdown (same dir as img/).
 
-Usage:  python scripts/build_pdf.py        # writes docs/stats/new/GUTACHTEN.html
-The Bash step then runs Chrome --headless --print-to-pdf to produce GUTACHTEN.pdf.
+Run:  npm run stats:report        # = python3 src/stats/buildReport.py
+Then (PDF):
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+      --print-to-pdf=docs/stats/GUTACHTEN.pdf --no-pdf-header-footer docs/stats/GUTACHTEN.html
 """
 import os
 import markdown
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DOC = os.path.join(HERE, "..", "docs", "stats", "new")
+DOC = os.path.abspath(os.path.join(HERE, "..", "..", "docs", "stats"))
 SRC = os.path.join(DOC, "GUTACHTEN.md")
 OUT = os.path.join(DOC, "GUTACHTEN.html")
 

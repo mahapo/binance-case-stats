@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 """
-Binance Futures USD-M — Statistical Disadvantage Analysis (charts + advanced stats)
+Binance Futures USD-M — court report charts (rendering only).
 
-Reads docs/stats/new/analysis_data.json (produced by futures_analysis_v2.js) and:
-  * bootstrap 95% CI for the mean per-trade P&L (robust to non-normality)
-  * Wilson 95% CI for the win rate
-  * Monte-Carlo distribution of the maximum loss streak under the trader's OWN
-    loss rate -> empirical p-value for the observed streak (the honest baseline)
-  * Wald-Wolfowitz runs test for independence/clustering of the win/loss sequence
-  * an illustrative "fair coin" (50%) comparison for the appendix
+All statistics are computed by the TypeScript engine (`npm run stats`) and written to
+docs/stats/{analysis_data.json, computed_values.json}. This script is a pure renderer:
+it reads those files and draws every PNG embedded in the Gutachten. No inference logic
+lives here, so the report has a single source of statistical truth.
 
-Writes all PNG charts to docs/stats/new/img/ and the computed statistics to
-docs/stats/new/computed_values.json so the report can cite exact numbers.
-
-Run:  source .venv/bin/activate && python scripts/generate_charts.py
+Run:  npm run stats:charts        # = python3 src/stats/charts.py
 """
 import json
 import os
@@ -22,16 +16,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "docs", "stats", "new")
+OUT = os.path.abspath(os.path.join(HERE, "..", "..", "docs", "stats"))
 IMG = os.path.join(OUT, "img")
 os.makedirs(IMG, exist_ok=True)
-
-RNG = np.random.default_rng(20260601)  # fixed seed -> reproducible figures
-N_BOOT = 50_000
-N_SIM = 200_000
 
 # Consistent house style
 plt.rcParams.update({
@@ -49,7 +38,7 @@ C_NEUT = "#2c3e50"
 C_ACC = "#2980b9"
 
 
-def eur(x):  # USD formatting helper for labels
+def eur(x):
     return f"${x:,.0f}"
 
 
@@ -61,50 +50,59 @@ def save(fig, name):
     print("  wrote img/" + name)
 
 
+def bin_centers(hist):
+    """Reconstruct equal-width bin centers + counts from a {min,max,counts} histogram."""
+    counts = np.array(hist["counts"], dtype=float)
+    edges = np.linspace(hist["min"], hist["max"], len(counts) + 1)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    width = edges[1] - edges[0]
+    return centers, counts, width
+
+
 # ---------------------------------------------------------------------------
 with open(os.path.join(OUT, "analysis_data.json"), encoding="utf-8") as f:
     D = json.load(f)
+with open(os.path.join(OUT, "computed_values.json"), encoding="utf-8") as f:
+    C = json.load(f)
 
 recon = D["reconciliation"]
 overall = D["overall"]
 seq = D["sequences"]
 pnl = np.array(seq["closingPnLChrono"], dtype=float)
-wl = np.array(seq["winLossSeq"], dtype=int)  # 1 win, 0 loss
 N = len(pnl)
-n_wins = int(overall["nWins"])
-n_losses = int(overall["nLosses"])
-loss_rate = overall["lossRate"]
-win_rate = overall["winRate"]
-obs_max_loss_streak = int(overall["maxLossStreak"])
 
-print(f"Loaded {N} closing trades  |  win rate {win_rate*100:.2f}%  |  obs max loss streak {obs_max_loss_streak}")
+ev = C["expected_value"]
+wr = C["win_rate"]
+mls = C["max_loss_streak"]
+runs = C["runs_test"]
+acor = C["autocorrelation"]
+lsf = C["loss_streak_frequency"]
 
-results = {}
+mean_pnl = ev["mean_pnl_per_trade"]
+ci_lo, ci_hi = ev["bootstrap_ci95"]
+win_rate = wr["win_rate"]
+rr = wr["rr_ratio"]
+breakeven_wr = wr["breakeven_win_rate_implied"]
+w_lo, w_hi = wr["wilson_ci95"]
+obs_max_loss_streak = mls["observed"]
+fair = mls["primary_fair_rr_baseline"]
+p_fair = fair["p_value_ge_observed"]
+
+print(f"Rendering charts for {N} closing trades  |  win rate {win_rate*100:.2f}%  |  max loss streak {obs_max_loss_streak}")
 
 # ---------------------------------------------------------------------------
-# 1) Bootstrap CI for mean per-trade P&L
+# 1) Bootstrap sampling distribution of the mean per-trade P&L
 # ---------------------------------------------------------------------------
-boot_means = pnl[RNG.integers(0, N, size=(N_BOOT, N))].mean(axis=1)
-ci_lo, ci_hi = np.percentile(boot_means, [2.5, 97.5])
-mean_pnl = float(pnl.mean())
-# classic one-sample t-test against 0 (reference)
-t_stat, t_p = stats.ttest_1samp(pnl, 0.0)
-results["expected_value"] = {
-    "mean_pnl_per_trade": mean_pnl,
-    "bootstrap_ci95": [float(ci_lo), float(ci_hi)],
-    "bootstrap_p_mean_ge_0": float(np.mean(boot_means >= 0)),
-    "ttest_t": float(t_stat),
-    "ttest_p_two_sided": float(t_p),
-    "n_trades": N,
-}
-
+centers, counts, width = bin_centers(ev["histogram"])
 fig, ax = plt.subplots(figsize=(8, 4.5))
-ax.hist(boot_means, bins=80, color=C_ACC, alpha=0.75, edgecolor="white", linewidth=0.3)
-# normal overlay
-x = np.linspace(boot_means.min(), boot_means.max(), 400)
-ax.plot(x, stats.norm.pdf(x, boot_means.mean(), boot_means.std()) * N_BOOT *
-        (boot_means.max() - boot_means.min()) / 80, color=C_NEUT, lw=1.5,
-        label="Normalverteilungs-Näherung")
+ax.bar(centers, counts, width=width, color=C_ACC, alpha=0.75, edgecolor="white", linewidth=0.3)
+# normal overlay scaled to the histogram
+mu_b = float(np.average(centers, weights=counts))
+var_b = float(np.average((centers - mu_b) ** 2, weights=counts))
+sd_b = np.sqrt(var_b)
+x = np.linspace(centers.min(), centers.max(), 400)
+norm = np.exp(-0.5 * ((x - mu_b) / sd_b) ** 2) / (sd_b * np.sqrt(2 * np.pi))
+ax.plot(x, norm * counts.sum() * width, color=C_NEUT, lw=1.5, label="Normalverteilungs-Näherung")
 ax.axvline(0, color=C_LOSS, lw=2, ls="--", label="Gewinnschwelle (0 $)")
 ax.axvspan(ci_lo, ci_hi, color=C_WIN, alpha=0.12, label="95%-Konfidenzintervall")
 ax.axvline(mean_pnl, color=C_NEUT, lw=2, label=f"Mittelwert {mean_pnl:.2f} $")
@@ -116,25 +114,8 @@ ax.legend(fontsize=9)
 save(fig, "ev_bell_curve.png")
 
 # ---------------------------------------------------------------------------
-# 2) Wilson CI for win rate
+# 2) Wilson CI for win rate vs R:R-implied breakeven
 # ---------------------------------------------------------------------------
-z = 1.959963985
-p = win_rate
-denom = 1 + z**2 / N
-centre = (p + z**2 / (2 * N)) / denom
-half = (z * np.sqrt(p * (1 - p) / N + z**2 / (4 * N**2))) / denom
-w_lo, w_hi = centre - half, centre + half
-# R:R-implied breakeven win rate (used for the appendix discussion)
-rr = overall["rrRatio"]
-breakeven_wr = 1 / (1 + rr) if rr > 0 else float("nan")
-results["win_rate"] = {
-    "win_rate": win_rate,
-    "wilson_ci95": [float(w_lo), float(w_hi)],
-    "n_trades": N, "n_wins": n_wins, "n_losses": n_losses,
-    "rr_ratio": rr,
-    "breakeven_win_rate_implied": float(breakeven_wr),
-}
-
 fig, ax = plt.subplots(figsize=(7.5, 3.2))
 ax.errorbar([win_rate * 100], [0], xerr=[[(win_rate - w_lo) * 100], [(w_hi - win_rate) * 100]],
             fmt="o", color=C_ACC, capsize=6, markersize=9, lw=2,
@@ -148,57 +129,18 @@ ax.legend(fontsize=9, loc="lower center", bbox_to_anchor=(0.5, -0.55))
 save(fig, "winrate_ci.png")
 
 # ---------------------------------------------------------------------------
-# 3) Monte-Carlo: max loss streak under the trader's OWN loss rate
+# 3) Monte-Carlo max loss streak under a fair (R:R-implied) market
 # ---------------------------------------------------------------------------
-def simulate_max_loss_streaks(n_sims, n_trials, p_loss, chunk=10_000):
-    """Max run of losses per simulated sequence, computed in memory-safe chunks."""
-    out = np.empty(n_sims, dtype=np.int32)
-    done = 0
-    while done < n_sims:
-        m = min(chunk, n_sims - done)
-        losses = (RNG.random((m, n_trials)) < p_loss)
-        run = np.zeros(m, dtype=np.int32)
-        best = np.zeros(m, dtype=np.int32)
-        for j in range(n_trials):
-            run = (run + 1) * losses[:, j]
-            np.maximum(best, run, out=best)
-        out[done:done + m] = best
-        done += m
-    return out
-
-# PRIMARY baseline (per court framing): a FAIR market consistent with the realized
-# reward/risk ratio — i.e. the R:R-implied break-even win rate. loss prob = rr/(1+rr).
-loss_rate_fair = 1.0 - breakeven_wr
-mc_fair = simulate_max_loss_streaks(N_SIM, N, loss_rate_fair)
-p_fair = float(np.mean(mc_fair >= obs_max_loss_streak))
-# SECONDARY (robustness): the trader's own realized loss rate.
-mc_own = simulate_max_loss_streaks(N_SIM, N, loss_rate)
-p_own = float(np.mean(mc_own >= obs_max_loss_streak))
-results["max_loss_streak"] = {
-    "observed": obs_max_loss_streak,
-    "unit": "economic position",
-    "n_sims": N_SIM,
-    "primary_fair_rr_baseline": {
-        "rr_ratio": rr, "breakeven_win_rate": breakeven_wr, "sim_loss_rate": loss_rate_fair,
-        "p_value_ge_observed": p_fair,
-        "median_max_streak": float(np.median(mc_fair)),
-        "p95_max_streak": float(np.percentile(mc_fair, 95)),
-        "p99_max_streak": float(np.percentile(mc_fair, 99)),
-    },
-    "secondary_own_rate_baseline": {
-        "loss_rate": loss_rate, "p_value_ge_observed": p_own,
-        "median_max_streak": float(np.median(mc_own)),
-    },
-}
-
+mc_hist = {int(k): int(v) for k, v in fair["histogram"].items()}
+ks_mc = np.arange(min(mc_hist), max(max(mc_hist), obs_max_loss_streak) + 1)
+mc_counts = np.array([mc_hist.get(int(k), 0) for k in ks_mc], dtype=float)
 fig, ax = plt.subplots(figsize=(8, 4.5))
-bins = np.arange(mc_fair.min(), max(obs_max_loss_streak, mc_fair.max()) + 2) - 0.5
-ax.hist(mc_fair, bins=bins, color=C_ACC, alpha=0.8, edgecolor="white", linewidth=0.3,
-        label=f"Simulierte längste Verlustserie\n(faire Gewinnschwelle {breakeven_wr*100:.1f}% bei CRV 1:{rr:.2f}, {N_SIM:,} Sim.)")
+ax.bar(ks_mc, mc_counts, width=0.9, color=C_ACC, alpha=0.8, edgecolor="white", linewidth=0.3,
+       label=f"Simulierte längste Verlustserie\n(faire Gewinnschwelle {breakeven_wr*100:.1f}% bei CRV 1:{rr:.2f}, {mls['n_sims']:,} Sim.)")
 ax.axvline(obs_max_loss_streak, color=C_LOSS, lw=2.5,
            label=f"Beobachtet: {obs_max_loss_streak} Verluste in Folge")
-ax.axvline(np.median(mc_fair), color=C_NEUT, lw=1.5, ls="--",
-           label=f"Median Simulation: {np.median(mc_fair):.0f}")
+ax.axvline(fair["median_max_streak"], color=C_NEUT, lw=1.5, ls="--",
+           label=f"Median Simulation: {fair['median_max_streak']:.0f}")
 ax.set_title("Längste Verlustserie — Monte-Carlo unter einem fairen Markt (CRV-Gewinnschwelle)\n"
              f"p(≥{obs_max_loss_streak}) = {p_fair:.3f}  (Einheit: wirtschaftliche Position, n={N:,})")
 ax.set_xlabel("Längste Verlustserie in einer simulierten Handelshistorie")
@@ -207,67 +149,46 @@ ax.legend(fontsize=9)
 save(fig, "maxstreak_montecarlo.png")
 
 # ---------------------------------------------------------------------------
-# 4) Wald-Wolfowitz runs test (independence / clustering)
+# 4) Observed vs expected loss-streak frequency
 # ---------------------------------------------------------------------------
-runs = 1 + int(np.sum(wl[1:] != wl[:-1]))
-n1, n2 = n_wins, n_losses
-mu = 2 * n1 * n2 / N + 1
-var = 2 * n1 * n2 * (2 * n1 * n2 - N) / (N**2 * (N - 1))
-z_runs = (runs - mu) / np.sqrt(var)
-p_runs = 2 * stats.norm.sf(abs(z_runs))
-results["runs_test"] = {
-    "observed_runs": runs,
-    "expected_runs": float(mu),
-    "z": float(z_runs),
-    "p_two_sided": float(p_runs),
-    "interpretation": ("fewer runs than expected -> clustering"
-                       if z_runs < 0 else "more runs than expected -> alternation")
-                      + ("  (NOT significant)" if p_runs >= 0.05 else "  (significant)"),
-}
-
-# ---------------------------------------------------------------------------
-# 5) Observed vs expected loss-streak frequency (own rate + fair coin)
-# ---------------------------------------------------------------------------
-hist = {int(k): int(v) for k, v in seq["lossStreakHistogram"].items()}
-kmax = max(hist) if hist else 1
-ks = np.arange(1, kmax + 1)
-observed = np.array([hist.get(int(k), 0) for k in ks], dtype=float)
-
-def expected_run_counts(n, p_event, lengths):
-    """Expected number of maximal runs of exactly length k (iid Bernoulli)."""
-    q = 1 - p_event
-    out = []
-    for k in lengths:
-        if k < n:
-            out.append((n - k - 1) * q * q * p_event**k + 2 * q * p_event**k)
-        else:
-            out.append(p_event**n)
-    return np.array(out)
-
-exp_fair = expected_run_counts(N, loss_rate_fair, ks)   # fair market (R:R break-even)
-exp_own = expected_run_counts(N, loss_rate, ks)         # robustness: own loss rate
-results["loss_streak_frequency"] = {
-    "lengths": ks.tolist(),
-    "observed": observed.tolist(),
-    "expected_fair_rr": exp_fair.tolist(),
-    "expected_own_rate": exp_own.tolist(),
-}
-
+ks = np.array(lsf["lengths"], dtype=float)
+observed = np.array(lsf["observed"], dtype=float)
+exp_fair = np.array(lsf["expected_fair_rr"], dtype=float)
 fig, ax = plt.subplots(figsize=(9, 4.8))
 wbar = 0.4
 ax.bar(ks - wbar / 2, observed, width=wbar, color=C_LOSS, label="Beobachtet (Positionen)")
 ax.bar(ks + wbar / 2, exp_fair, width=wbar, color=C_ACC,
        label=f"Erwartet bei fairem Markt (Gewinnschwelle {breakeven_wr*100:.1f}%, CRV 1:{rr:.2f})")
 ax.set_yscale("symlog", linthresh=1)
+cf = lsf["chi_square_fit"]
 ax.set_title("Verlustserien: beobachtete vs. bei fairem Markt erwartete Häufigkeit\n"
-             "(Baseline = CRV-Gewinnschwelle — fairer, belastbarer Referenzprozess)")
+             f"χ²-Anpassungstest: χ² = {cf['chi2']:.0f}, df = {cf['df']}, p < 0,001")
 ax.set_xlabel("Länge der Verlustserie (aufeinanderfolgende Verluste, Positionsebene)")
 ax.set_ylabel("Anzahl (symlog)")
 ax.legend(fontsize=9)
 save(fig, "streak_freq_observed_vs_expected.png")
 
 # ---------------------------------------------------------------------------
-# 6) Fee waterfall
+# 4b) NEW — autocorrelation of the win/loss sequence (independence finding)
+# ---------------------------------------------------------------------------
+acf = np.array(acor["acf"], dtype=float)
+lags = np.arange(1, len(acf) + 1)
+conf = 1.959963985 / np.sqrt(N)  # ~95% white-noise band
+fig, ax = plt.subplots(figsize=(9, 4.4))
+ax.bar(lags, acf, width=0.6, color=C_NEUT)
+ax.axhline(conf, color=C_LOSS, ls="--", lw=1, label=f"95%-Signifikanzband (±{conf:.3f})")
+ax.axhline(-conf, color=C_LOSS, ls="--", lw=1)
+ax.axhline(0, color="black", lw=0.7)
+ax.set_xticks(lags)
+ax.set_title("Autokorrelation der Gewinn/Verlust-Folge (1 = Gewinn, 0 = Verlust)\n"
+             f"Ljung-Box Q({acor['max_lag']}) = {acor['ljung_box_Q']:.0f}, p < 0,001 — die Ergebnisse sind seriell abhängig")
+ax.set_xlabel("Lag (Positionen)")
+ax.set_ylabel("Autokorrelation")
+ax.legend(fontsize=9)
+save(fig, "autocorrelation.png")
+
+# ---------------------------------------------------------------------------
+# 5) Fee waterfall
 # ---------------------------------------------------------------------------
 gross = recon["realizedPnl"]
 comm = recon["commission"]
@@ -291,12 +212,12 @@ ax.axhline(0, color="black", lw=0.8)
 ax.set_xticks(range(len(labels)))
 ax.set_xticklabels(labels, fontsize=9)
 ax.set_ylabel("USD")
-ax.set_title(f"Von der Gewinnschwelle in den Totalverlust: die Gebührenlast\n"
+ax.set_title("Von der Gewinnschwelle in den Totalverlust: die Gebührenlast\n"
              f"Gebühren ({eur(comm+fund+ins)}) = {recon['feeToGrossRatio']:.0f}× des Bruttoergebnisses")
 save(fig, "fee_waterfall.png")
 
 # ---------------------------------------------------------------------------
-# 7) Gross vs net (simple, high-impact)
+# 6) Gross vs net
 # ---------------------------------------------------------------------------
 fig, ax = plt.subplots(figsize=(6.5, 4.8))
 bars = ax.bar(["Brutto-Handels-\nergebnis", "Gebühren\n(gesamt)", "Netto-\nErgebnis"],
@@ -311,7 +232,7 @@ ax.set_title("Bruttoergebnis vs. Gebühren vs. Nettoergebnis")
 save(fig, "fees_vs_result.png")
 
 # ---------------------------------------------------------------------------
-# 8) Equity curve + drawdown
+# 7) Equity curve + drawdown
 # ---------------------------------------------------------------------------
 cum_pnl = np.cumsum(pnl)
 peak = np.maximum.accumulate(cum_pnl)
@@ -331,26 +252,28 @@ a2.set_xlabel("Geschlossene Trades (chronologisch)")
 save(fig, "equity_curve.png")
 
 # ---------------------------------------------------------------------------
-# 9) Yearly breakdown
+# 8) Yearly breakdown
 # ---------------------------------------------------------------------------
 years = sorted(D["byYear"].keys())
 y_pnl = [D["byYear"][y]["realPnLClosing"] for y in years]
 y_wr = [D["byYear"][y]["winRate"] * 100 for y in years]
 fig, ax = plt.subplots(figsize=(8.5, 4.8))
-bars = ax.bar(years, y_pnl, color=[C_WIN if v >= 0 else C_LOSS for v in y_pnl],
-              edgecolor="black", linewidth=0.4)
+ax.bar(years, y_pnl, color=[C_WIN if v >= 0 else C_LOSS for v in y_pnl],
+       edgecolor="black", linewidth=0.4)
 ax.axhline(0, color="black", lw=0.8)
 ax.set_ylabel("Realisiertes Ergebnis pro Jahr (USD, inkl. Komm.)")
 ax2 = ax.twinx()
 ax2.plot(years, y_wr, color=C_ACC, marker="o", lw=2, label="Trefferquote")
+ax2.axhline(breakeven_wr * 100, color=C_NEUT, ls=":", lw=1.3, label=f"Gewinnschwelle {breakeven_wr*100:.1f}%")
 ax2.set_ylabel("Trefferquote (%)", color=C_ACC)
 ax2.set_ylim(0, 60)
 ax2.grid(False)
+ax2.legend(fontsize=8, loc="upper right")
 ax.set_title("Jährliches Handelsergebnis und Trefferquote")
 save(fig, "yearly_breakdown.png")
 
 # ---------------------------------------------------------------------------
-# 10) Per-trade P&L distribution (appendix: fat tails / kurtosis)
+# 9) Per-trade P&L distribution (appendix: fat tails)
 # ---------------------------------------------------------------------------
 clip = np.percentile(np.abs(pnl), 99)
 clipped = np.clip(pnl, -clip, clip)
@@ -366,7 +289,7 @@ ax.set_ylabel("Häufigkeit (log)")
 save(fig, "pnl_histogram.png")
 
 # ---------------------------------------------------------------------------
-# 11) Execution profile: order-type mix and fill status
+# 10) Execution profile: order-type mix and fill status
 # ---------------------------------------------------------------------------
 exec_ = D["execution"]
 ts = exec_["typeStatus"]
@@ -378,7 +301,6 @@ for k, v in ts.items():
     t, s = [x.strip() for x in k.split("/")]
     if t in mat and s in mat[t]:
         mat[t][s] = v
-
 fig, ax = plt.subplots(figsize=(8.5, 4.8))
 xs = np.arange(len(types_order))
 bottom = np.zeros(len(types_order))
@@ -398,7 +320,7 @@ ax.legend(title="Status", fontsize=9)
 save(fig, "order_type_status.png")
 
 # ---------------------------------------------------------------------------
-# 12) Maker vs taker commission
+# 11) Maker vs taker commission
 # ---------------------------------------------------------------------------
 mt = exec_["makerTaker"]
 fig, ax = plt.subplots(figsize=(6.5, 4.6))
@@ -413,7 +335,7 @@ ax.set_title(f"{mt['takerFeeShare']*100:.1f} % der Kommissionen entfielen auf di
 save(fig, "maker_taker_fees.png")
 
 # ---------------------------------------------------------------------------
-# 13) How closing positions were exited (by order type)
+# 12) How closing positions were exited (by order type)
 # ---------------------------------------------------------------------------
 ets = exec_["exitTypes"]
 eorder = sorted(ets.keys(), key=lambda t: -ets[t]["n"])
@@ -434,11 +356,11 @@ for b, v in zip(bars, sums):
 a2.axhline(0, color="black", lw=0.8)
 a2.set_ylabel("Summiertes Ergebnis (USD)")
 a2.set_title("Ergebnis nach Ausstiegs-Typ")
-fig.suptitle("94 % der Positionen wurden manuell per Market-Order geschlossen — nicht per Stop", fontsize=11)
+fig.suptitle("Die Positionen wurden überwiegend manuell per Market-Order geschlossen — nicht per Stop", fontsize=11)
 save(fig, "exit_type.png")
 
 # ---------------------------------------------------------------------------
-# 14) Forced liquidations by year
+# 13) Forced liquidations by year
 # ---------------------------------------------------------------------------
 liq = D["liquidations"]
 lyears = sorted(liq["byYear"].keys())
@@ -457,30 +379,4 @@ ax.set_title(f"Zwangsliquidationen: {liq['count']} Ereignisse, {eur(liq['total']
              "(Insurance-Clear-Abgaben — Indikator für überhöhten Hebel)")
 save(fig, "liquidations_by_year.png")
 
-# ---------------------------------------------------------------------------
-results["execution_summary"] = {
-    "type_counts": exec_["typeCounts"],
-    "stop_trigger_rate": exec_["stop"]["triggerRate"],
-    "taker_fill_share": mt["takerFillShare"],
-    "taker_fee_share": mt["takerFeeShare"],
-    "commission_bps": D["commissionBps"],
-    "exit_types": {t: {"n": ets[t]["n"], "winRate": ets[t]["winRate"], "sumPnL": ets[t]["sumPnL"]} for t in ets},
-    "liquidations": {"count": liq["count"], "total": liq["total"]},
-}
-results["meta"] = {
-    "n_bootstrap": N_BOOT, "n_simulations": N_SIM, "seed": 20260601,
-    "fee_to_gross_ratio": recon["feeToGrossRatio"],
-    "cost_bps_of_notional": D["costBps"],
-    "net_trading_pnl": net, "binance_reported_net": recon["reportedNet"],
-    "reconciliation_delta": recon["reconciliationDelta"],
-}
-with open(os.path.join(OUT, "computed_values.json"), "w", encoding="utf-8") as f:
-    json.dump(results, f, indent=2, ensure_ascii=False)
-
-print("\nKey advanced statistics:")
-print(f"  Mean P&L/trade: {mean_pnl:.4f}  bootstrap 95% CI [{ci_lo:.4f}, {ci_hi:.4f}]")
-print(f"  t-test vs 0: t={t_stat:.3f}, p={t_p:.3e}")
-print(f"  Win rate Wilson 95% CI: [{w_lo*100:.2f}%, {w_hi*100:.2f}%]  (breakeven {breakeven_wr*100:.2f}%)")
-print(f"  Max loss streak {obs_max_loss_streak} (positions): p(fair R:R)={p_fair:.4f}  p(own rate)={p_own:.4f}")
-print(f"  Runs test: runs={runs}, expected={mu:.1f}, z={z_runs:.3f}, p={p_runs:.3f}")
-print("Wrote computed_values.json")
+print("\nAll charts rendered to docs/stats/img/")
