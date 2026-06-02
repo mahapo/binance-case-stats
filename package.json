@@ -6,7 +6,8 @@
     "stats:verify": "npx ts-node src/stats/verifyGrouping.ts",
     "stats:streaks": "npx ts-node src/stats/exportLossStreaks.ts",
     "stats:charts": "python3 src/stats/charts.py",
-    "stats:report": "python3 src/stats/buildReport.py"
+    "stats:report": "python3 src/stats/buildReport.py",
+    "stats:validate": "python3 src/stats/validate.py"
   },
   "dependencies": {
     "bignumber.js": "^11.1.2",

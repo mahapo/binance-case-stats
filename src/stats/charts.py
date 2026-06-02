@@ -153,16 +153,16 @@ save(fig, "maxstreak_montecarlo.png")
 # ---------------------------------------------------------------------------
 ks = np.array(lsf["lengths"], dtype=float)
 observed = np.array(lsf["observed"], dtype=float)
-exp_fair = np.array(lsf["expected_fair_rr"], dtype=float)
+exp_fair = np.array(lsf["expected_fair_geometric"], dtype=float)
 fig, ax = plt.subplots(figsize=(9, 4.8))
 wbar = 0.4
 ax.bar(ks - wbar / 2, observed, width=wbar, color=C_LOSS, label="Beobachtet (Positionen)")
 ax.bar(ks + wbar / 2, exp_fair, width=wbar, color=C_ACC,
-       label=f"Erwartet bei fairem Markt (Gewinnschwelle {breakeven_wr*100:.1f}%, CRV 1:{rr:.2f})")
+       label=f"Erwartet bei fairem Markt (geometrisch, Verlustquote {(1-breakeven_wr)*100:.1f}%, CRV 1:{rr:.2f})")
 ax.set_yscale("symlog", linthresh=1)
 cf = lsf["chi_square_fit"]
-ax.set_title("Verlustserien: beobachtete vs. bei fairem Markt erwartete Häufigkeit\n"
-             f"χ²-Anpassungstest: χ² = {cf['chi2']:.0f}, df = {cf['df']}, p < 0,001")
+ax.set_title("Verlustserien: beobachtete vs. bei fairem Markt erwartete Längenverteilung\n"
+             f"χ²-Anpassungstest (bedingt auf {cf['nRuns']:.0f} Verlustserien): χ² = {cf['chi2']:.0f}, df = {cf['df']}, p < 0,001")
 ax.set_xlabel("Länge der Verlustserie (aufeinanderfolgende Verluste, Positionsebene)")
 ax.set_ylabel("Anzahl (symlog)")
 ax.legend(fontsize=9)

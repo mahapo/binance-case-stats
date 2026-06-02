@@ -200,6 +200,13 @@ Verteilungsannahme. Geprüft wird die Nullhypothese, der Händler habe mit der z
 > signifikant unter der Gewinnschwelle; 2022 lag sie darüber (das ertragsstärkste Quotenjahr, aber
 > zugleich das verlustreichste — der Verlust dieses Jahres ist also nicht durch eine niedrige
 > Trefferquote, sondern durch Positionsgröße/Gebühren getrieben, vgl. Abschnitt 2 und 4).
+>
+> *Hinweis zur Methode:* Die Gewinnschwelle (33,43 %) wird aus dem **realisierten** CRV derselben
+> Stichprobe abgeleitet; der Test behandelt sie als gegeben. Da die Trefferquote mit **29,04 %** und
+> sogar ihre obere 95 %-Konfidenzgrenze (**30,22 %**) deutlich darunter liegen, ist die
+> Schlussfolgerung gegenüber der Schätzunsicherheit des CRV **robust**. Der Befund ist **deskriptiv**
+> (die Trefferquote reichte für das eigene Auszahlungsprofil nicht aus) und wird **nicht** als
+> Kausalnachweis eines Plattformvorteils geführt (vgl. Anhang A.2).
 
 ---
 
@@ -242,9 +249,14 @@ In einem fairen, zum CRV des Händlers ausgeglichenen Markt wäre eine Verlustse
 also nur in **rund 0,4 %** der Fälle zu erwarten. *(Zur Robustheit: auch gegen die — bereits
 ungünstige — eigene Verlustquote des Händlers bleibt die Serie grenzwertig signifikant, p = 0,029.)*
 
-Ein **χ²-Anpassungstest** der gesamten Verlustserien-Längenverteilung gegen den fairen Markt
-verwirft die Übereinstimmung deutlich (**χ² = 286, df = 11, p < 0,001**): es treten systematisch zu
-viele lange Verlustserien auf (siehe Grafik in Abschnitt 5.2).
+Ergänzend prüft ein **χ²-Anpassungstest** die **Längenverteilung** der Verlustserien — und zwar
+**bedingt auf die tatsächlich beobachtete Anzahl der Verlustserien (1.024)**, um die Aussage zur
+Serien­*länge* sauber von der zur Serien­*anzahl* (Runs-Test, Abschnitt 5.2) zu trennen. Unter einem
+fairen, unabhängigen Markt wäre die Länge **geometrisch** verteilt. Der Test verwirft diese
+Übereinstimmung deutlich (**χ² = 289, df = 11, p < 0,001**): es treten systematisch zu viele **lange**
+Verlustserien auf — die Klasse „≥ 12 Verluste in Folge" tritt **65-mal** auf, erwartet wären rund
+**12** (siehe Grafik in Abschnitt 5.2). Eine Serie von 32 Verlusten hätte unter dem fairen Modell eine
+Erwartung von **0,003** Vorkommen.
 
 ### 5.2 Runs-Test: Die Ergebnisfolge war nicht unabhängig
 
@@ -273,15 +285,23 @@ Die Ergebnisse sind damit **seriell positiv abhängig** — Gewinne folgen auf G
 Verluste auf Verluste, statt sich wie bei unabhängigen Ziehungen zufällig abzuwechseln. Dies ist mit
 dem Runs-Test-Befund (zu wenige Phasenwechsel) konsistent.
 
+> **Methodischer Vorbehalt (offen ausgewiesen).** Runs-Test und Ljung-Box-Test prüfen die Hypothese
+> eines **unabhängigen Prozesses mit konstanter Trefferquote**. Da die Trefferquote über die Jahre
+> schwankte (Abschnitt 7: 35,5 % in 2022 bis 19,9 % in 2024), kann ein **Teil** der gemessenen
+> Autokorrelation/Klumpung bereits aus dieser **Nicht-Stationarität** (langsame Verschiebung der
+> Quote) statt aus kurzfristiger Klumpung folgen. Beide Mechanismen verletzen die Annahme eines
+> fairen, unabhängigen, **stationären** Zufallsprozesses; die **Richtung** des Befunds (Klumpung,
+> keine Alternation) ist robust, die **Ursache** wird hierdurch nicht isoliert.
+
 ### 5.4 Equity-Kurve
 
 ![Equity-Kurve und Drawdown](img/equity_curve.png)
 
 > **Beweiskraft:** Der Runs-Test ist ein robuster, anerkannter Nachweis, dass die Ergebnisse **kein
 > fairer, unabhängiger Zufallsprozess** waren. Über die **Ursache** der Klumpung trifft er allein
-> keine Aussage (mögliche Faktoren: korrelierte Positionen, Handelsverhalten, Marktphasen). Er
-> widerlegt jedoch belastbar die Annahme, die Verluste seien bloßes „Pech" voneinander unabhängiger
-> Einzelereignisse.
+> keine Aussage (mögliche Faktoren: korrelierte Positionen, Handelsverhalten, Marktphasen, im
+> Zeitverlauf schwankende Trefferquote — siehe Vorbehalt oben). Er widerlegt jedoch belastbar die
+> Annahme, die Verluste seien bloßes „Pech" voneinander unabhängiger Einzelereignisse.
 
 ---
 
@@ -389,7 +409,8 @@ Unterschreitung der Gewinnschwelle ist **logisch zirkulär** und wird daher nur 
 - **Verfahren.** Wilson-KI und **exakter Binomialtest** (Trefferquote, gesamt und je Jahr);
   nicht-parametrischer Bootstrap (50.000 Resamples, Mittelwert); Monte-Carlo (200.000 Läufe, fester
   Seed; längste Verlustserie); Wald-Wolfowitz-Runs-Test; **Ljung-Box-Test** (20 Lags,
-  Autokorrelation der Ergebnisfolge) und **χ²-Anpassungstest** der Verlustserien-Längenverteilung.
+  Autokorrelation der Ergebnisfolge) und **bedingter χ²-Anpassungstest** der
+  Verlustserien-Längenverteilung (geometrisches Nullmodell, bedingt auf die Anzahl der Serien).
   Sämtliche Tests sind in TypeScript implementiert (analytische p-Werte über Standardroutinen für
   Normal-, χ²- und t-Verteilung); die Monte-Carlo-/Bootstrap-Werte sind über einen festen Seed
   reproduzierbar.
@@ -420,6 +441,9 @@ npm run stats:charts
 npm run stats:report            # -> docs/stats/GUTACHTEN.html
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
     --print-to-pdf=docs/stats/GUTACHTEN.pdf --no-pdf-header-footer docs/stats/GUTACHTEN.html
+
+# 6) Unabhängige Gegenprüfung sämtlicher Teststatistiken gegen SciPy (Referenzimplementierung)
+npm run stats:validate          # vergleicht computed_values.json mit einer scipy-Neuberechnung
 ```
 
 - **Engine-Quellcode:** `src/stats/*.ts` (TypeScript; CSV-Parsing, Reconciliation,
@@ -429,6 +453,20 @@ npm run stats:report            # -> docs/stats/GUTACHTEN.html
   Liquidationen, Reihen, Histogramme, `validation`-Block), `computed_values.json` (KIs, p-Werte,
   Testresultate inkl. Binomial-, Ljung-Box- und χ²-Test), `monthly.csv`.
 - **Zufalls-Seed:** 20260601 (mulberry32; Monte-Carlo-/Bootstrap-p-Werte daher exakt reproduzierbar).
+- **Unabhängige Verifikation:** Alle analytisch berechneten Teststatistiken (Runs-Test, exakter
+  Binomialtest gesamt und je Jahr, t-Test, Wilson-Intervall, Ljung-Box, χ²) wurden gegen die
+  etablierte Referenzbibliothek **SciPy** gegengerechnet und stimmen bis auf Maschinengenauigkeit
+  überein (`npm run stats:validate`).
+
+> **Öffentliche Nachprüfbarkeit.** Sämtlicher Quellcode und sämtliche Rohdaten dieses Gutachtens sind
+> öffentlich einsehbar und unabhängig reproduzierbar unter
+> **https://github.com/mahapo/binance-case-stats**. Jede Kennzahl, jeder p-Wert und jede Grafik kann
+> mit den oben genannten Befehlen aus den Original-Binance-Exporten nachgebildet werden.
+>
+> **Erstellung.** Die Analyse und Implementierung erfolgten mit Unterstützung von **Claude Opus 4.8**
+> (Anthropic) — dem zum Erstellungszeitpunkt leistungsfähigsten verfügbaren KI-Sprachmodell. Die
+> KI-Unterstützung ersetzt keine sachverständige Würdigung; die Beweiskraft des Gutachtens beruht
+> ausschließlich auf den oben offengelegten, unabhängig nachprüfbaren Daten, Methoden und Quelltexten.
 
 *Erstellt am 2. Juni 2026. Sämtliche Zahlenwerte sind aus den genannten Ergebnisdateien
 nachvollziehbar.*

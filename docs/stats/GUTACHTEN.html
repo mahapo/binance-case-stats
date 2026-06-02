@@ -346,6 +346,12 @@ Verteilungsannahme. Geprüft wird die Nullhypothese, der Händler habe mit der z
 signifikant unter der Gewinnschwelle; 2022 lag sie darüber (das ertragsstärkste Quotenjahr, aber<br />
 zugleich das verlustreichste — der Verlust dieses Jahres ist also nicht durch eine niedrige<br />
 Trefferquote, sondern durch Positionsgröße/Gebühren getrieben, vgl. Abschnitt 2 und 4).</p>
+<p><em>Hinweis zur Methode:</em> Die Gewinnschwelle (33,43 %) wird aus dem <strong>realisierten</strong> CRV derselben<br />
+Stichprobe abgeleitet; der Test behandelt sie als gegeben. Da die Trefferquote mit <strong>29,04 %</strong> und<br />
+sogar ihre obere 95 %-Konfidenzgrenze (<strong>30,22 %</strong>) deutlich darunter liegen, ist die<br />
+Schlussfolgerung gegenüber der Schätzunsicherheit des CRV <strong>robust</strong>. Der Befund ist <strong>deskriptiv</strong><br />
+(die Trefferquote reichte für das eigene Auszahlungsprofil nicht aus) und wird <strong>nicht</strong> als<br />
+Kausalnachweis eines Plattformvorteils geführt (vgl. Anhang A.2).</p>
 </blockquote>
 <hr />
 <h2 id="4-kernbefund-c-erwartungswert-pro-trade-ehrliche-einordnung">4. Kernbefund C — Erwartungswert pro Trade (ehrliche Einordnung)</h2>
@@ -380,9 +386,14 @@ Handelshistorien gleicher Länge unter dieser fairen Gewinnschwelle) ergibt:</p>
 <p>In einem fairen, zum CRV des Händlers ausgeglichenen Markt wäre eine Verlustserie von 32 Positionen<br />
 also nur in <strong>rund 0,4 %</strong> der Fälle zu erwarten. <em>(Zur Robustheit: auch gegen die — bereits<br />
 ungünstige — eigene Verlustquote des Händlers bleibt die Serie grenzwertig signifikant, p = 0,029.)</em></p>
-<p>Ein <strong>χ²-Anpassungstest</strong> der gesamten Verlustserien-Längenverteilung gegen den fairen Markt<br />
-verwirft die Übereinstimmung deutlich (<strong>χ² = 286, df = 11, p &lt; 0,001</strong>): es treten systematisch zu<br />
-viele lange Verlustserien auf (siehe Grafik in Abschnitt 5.2).</p>
+<p>Ergänzend prüft ein <strong>χ²-Anpassungstest</strong> die <strong>Längenverteilung</strong> der Verlustserien — und zwar<br />
+<strong>bedingt auf die tatsächlich beobachtete Anzahl der Verlustserien (1.024)</strong>, um die Aussage zur<br />
+Serien­<em>länge</em> sauber von der zur Serien­<em>anzahl</em> (Runs-Test, Abschnitt 5.2) zu trennen. Unter einem<br />
+fairen, unabhängigen Markt wäre die Länge <strong>geometrisch</strong> verteilt. Der Test verwirft diese<br />
+Übereinstimmung deutlich (<strong>χ² = 289, df = 11, p &lt; 0,001</strong>): es treten systematisch zu viele <strong>lange</strong><br />
+Verlustserien auf — die Klasse „≥ 12 Verluste in Folge" tritt <strong>65-mal</strong> auf, erwartet wären rund<br />
+<strong>12</strong> (siehe Grafik in Abschnitt 5.2). Eine Serie von 32 Verlusten hätte unter dem fairen Modell eine<br />
+Erwartung von <strong>0,003</strong> Vorkommen.</p>
 <h3 id="52-runs-test-die-ergebnisfolge-war-nicht-unabhangig">5.2 Runs-Test: Die Ergebnisfolge war nicht unabhängig</h3>
 <table>
 <thead>
@@ -422,14 +433,23 @@ deutlich oberhalb des 95 %-Zufallsbandes; der <strong>Ljung-Box-Test über 20 La
 <p>Die Ergebnisse sind damit <strong>seriell positiv abhängig</strong> — Gewinne folgen auf Gewinne und (häufiger)<br />
 Verluste auf Verluste, statt sich wie bei unabhängigen Ziehungen zufällig abzuwechseln. Dies ist mit<br />
 dem Runs-Test-Befund (zu wenige Phasenwechsel) konsistent.</p>
+<blockquote>
+<p><strong>Methodischer Vorbehalt (offen ausgewiesen).</strong> Runs-Test und Ljung-Box-Test prüfen die Hypothese<br />
+eines <strong>unabhängigen Prozesses mit konstanter Trefferquote</strong>. Da die Trefferquote über die Jahre<br />
+schwankte (Abschnitt 7: 35,5 % in 2022 bis 19,9 % in 2024), kann ein <strong>Teil</strong> der gemessenen<br />
+Autokorrelation/Klumpung bereits aus dieser <strong>Nicht-Stationarität</strong> (langsame Verschiebung der<br />
+Quote) statt aus kurzfristiger Klumpung folgen. Beide Mechanismen verletzen die Annahme eines<br />
+fairen, unabhängigen, <strong>stationären</strong> Zufallsprozesses; die <strong>Richtung</strong> des Befunds (Klumpung,<br />
+keine Alternation) ist robust, die <strong>Ursache</strong> wird hierdurch nicht isoliert.</p>
+</blockquote>
 <h3 id="54-equity-kurve">5.4 Equity-Kurve</h3>
 <p><img alt="Equity-Kurve und Drawdown" src="img/equity_curve.png" /></p>
 <blockquote>
 <p><strong>Beweiskraft:</strong> Der Runs-Test ist ein robuster, anerkannter Nachweis, dass die Ergebnisse <strong>kein<br />
 fairer, unabhängiger Zufallsprozess</strong> waren. Über die <strong>Ursache</strong> der Klumpung trifft er allein<br />
-keine Aussage (mögliche Faktoren: korrelierte Positionen, Handelsverhalten, Marktphasen). Er<br />
-widerlegt jedoch belastbar die Annahme, die Verluste seien bloßes „Pech" voneinander unabhängiger<br />
-Einzelereignisse.</p>
+keine Aussage (mögliche Faktoren: korrelierte Positionen, Handelsverhalten, Marktphasen, im<br />
+Zeitverlauf schwankende Trefferquote — siehe Vorbehalt oben). Er widerlegt jedoch belastbar die<br />
+Annahme, die Verluste seien bloßes „Pech" voneinander unabhängiger Einzelereignisse.</p>
 </blockquote>
 <hr />
 <h2 id="6-kernbefund-e-handels-und-ausfuhrungsstruktur">6. Kernbefund E — Handels- und Ausführungsstruktur</h2>
@@ -572,7 +592,8 @@ Unterschreitung der Gewinnschwelle ist <strong>logisch zirkulär</strong> und wi
 <li><strong>Verfahren.</strong> Wilson-KI und <strong>exakter Binomialtest</strong> (Trefferquote, gesamt und je Jahr);<br />
   nicht-parametrischer Bootstrap (50.000 Resamples, Mittelwert); Monte-Carlo (200.000 Läufe, fester<br />
   Seed; längste Verlustserie); Wald-Wolfowitz-Runs-Test; <strong>Ljung-Box-Test</strong> (20 Lags,<br />
-  Autokorrelation der Ergebnisfolge) und <strong>χ²-Anpassungstest</strong> der Verlustserien-Längenverteilung.<br />
+  Autokorrelation der Ergebnisfolge) und <strong>bedingter χ²-Anpassungstest</strong> der<br />
+  Verlustserien-Längenverteilung (geometrisches Nullmodell, bedingt auf die Anzahl der Serien).<br />
   Sämtliche Tests sind in TypeScript implementiert (analytische p-Werte über Standardroutinen für<br />
   Normal-, χ²- und t-Verteilung); die Monte-Carlo-/Bootstrap-Werte sind über einen festen Seed<br />
   reproduzierbar.</li>
@@ -600,6 +621,9 @@ npm run stats:charts
 npm run stats:report            # -&gt; docs/stats/GUTACHTEN.html
 &quot;/Applications/Google Chrome.app/Contents/MacOS/Google Chrome&quot; --headless --disable-gpu \
     --print-to-pdf=docs/stats/GUTACHTEN.pdf --no-pdf-header-footer docs/stats/GUTACHTEN.html
+
+# 6) Unabhängige Gegenprüfung sämtlicher Teststatistiken gegen SciPy (Referenzimplementierung)
+npm run stats:validate          # vergleicht computed_values.json mit einer scipy-Neuberechnung
 </code></pre>
 <ul>
 <li><strong>Engine-Quellcode:</strong> <code>src/stats/*.ts</code> (TypeScript; CSV-Parsing, Reconciliation,<br />
@@ -609,6 +633,20 @@ npm run stats:report            # -&gt; docs/stats/GUTACHTEN.html
   Liquidationen, Reihen, Histogramme, <code>validation</code>-Block), <code>computed_values.json</code> (KIs, p-Werte,<br />
   Testresultate inkl. Binomial-, Ljung-Box- und χ²-Test), <code>monthly.csv</code>.</li>
 <li><strong>Zufalls-Seed:</strong> 20260601 (mulberry32; Monte-Carlo-/Bootstrap-p-Werte daher exakt reproduzierbar).</li>
+<li><strong>Unabhängige Verifikation:</strong> Alle analytisch berechneten Teststatistiken (Runs-Test, exakter<br />
+  Binomialtest gesamt und je Jahr, t-Test, Wilson-Intervall, Ljung-Box, χ²) wurden gegen die<br />
+  etablierte Referenzbibliothek <strong>SciPy</strong> gegengerechnet und stimmen bis auf Maschinengenauigkeit<br />
+  überein (<code>npm run stats:validate</code>).</li>
 </ul>
+<blockquote>
+<p><strong>Öffentliche Nachprüfbarkeit.</strong> Sämtlicher Quellcode und sämtliche Rohdaten dieses Gutachtens sind<br />
+öffentlich einsehbar und unabhängig reproduzierbar unter<br />
+<strong>https://github.com/mahapo/binance-case-stats</strong>. Jede Kennzahl, jeder p-Wert und jede Grafik kann<br />
+mit den oben genannten Befehlen aus den Original-Binance-Exporten nachgebildet werden.</p>
+<p><strong>Erstellung.</strong> Die Analyse und Implementierung erfolgten mit Unterstützung von <strong>Claude Opus 4.8</strong><br />
+(Anthropic) — dem zum Erstellungszeitpunkt leistungsfähigsten verfügbaren KI-Sprachmodell. Die<br />
+KI-Unterstützung ersetzt keine sachverständige Würdigung; die Beweiskraft des Gutachtens beruht<br />
+ausschließlich auf den oben offengelegten, unabhängig nachprüfbaren Daten, Methoden und Quelltexten.</p>
+</blockquote>
 <p><em>Erstellt am 2. Juni 2026. Sämtliche Zahlenwerte sind aus den genannten Ergebnisdateien<br />
 nachvollziehbar.</em></p></body></html>

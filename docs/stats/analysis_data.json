@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T21:30:37.814Z",
+  "generatedAt": "2026-06-02T21:56:48.223Z",
   "scope": "Binance Futures USD-M",
   "unit": "economic position (open->flat cycle); order-level under `orders`",
   "dataFiles": {

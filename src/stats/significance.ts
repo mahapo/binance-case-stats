@@ -250,8 +250,23 @@ export function ljungBox(seq: number[], maxLag: number): LjungBoxResult {
 //    length counts. Bins with tiny expected counts are pooled into a final
 //    ">=" bucket so the asymptotic chi-square holds.
 // ---------------------------------------------------------------------------
+// 7) Chi-square goodness-of-fit on the SHAPE of the loss-streak length
+//    distribution, CONDITIONAL on the observed number of loss runs.
+//
+//    Under an iid fair market a maximal loss run has length k with geometric
+//    probability (1-p)·p^(k-1) (p = loss probability). Expected per-length counts
+//    are R·(1-p)·p^(k-1), where R = observed number of loss runs — so Σexpected =
+//    Σobserved by construction. This isolates the *length distribution* (shape)
+//    from the *number of runs* (already covered by the runs test), avoiding the
+//    total-count mismatch that would invalidate a naive GoF. Bins with expected <
+//    minExpected are pooled into a trailing ">=" bin; df = (#bins − 1) because only
+//    the total is constrained (p is supplied, not estimated from the streak data).
+// ---------------------------------------------------------------------------
 export interface ChiSquareFitResult {
-  lengths: number[]; // bin labels (last is the pooled ">=" bin)
+  baseline: string;
+  pLoss: number;
+  nRuns: number;
+  lengths: number[]; // bin labels (last, -1, is the pooled ">=" bin)
   observed: number[];
   expected: number[];
   chi2: number;
@@ -261,17 +276,20 @@ export interface ChiSquareFitResult {
 
 export function chiSquareStreakFit(
   observedHist: Record<number, number>,
-  expectedByLength: (k: number) => number,
+  pLoss: number,
   minExpected = 5,
 ): ChiSquareFitResult {
   const maxLen = Math.max(...Object.keys(observedHist).map(Number), 1);
+  const nRuns = Object.values(observedHist).reduce((s, v) => s + v, 0);
+  const geom = (k: number): number => nRuns * (1 - pLoss) * pLoss ** (k - 1);
+
   const lengths: number[] = [];
   const observed: number[] = [];
   const expected: number[] = [];
   let poolObs = 0, poolExp = 0, pooling = false;
   for (let k = 1; k <= maxLen; k++) {
     const o = observedHist[k] || 0;
-    const e = expectedByLength(k);
+    const e = geom(k);
     if (pooling || e < minExpected) {
       pooling = true;
       poolObs += o;
@@ -282,8 +300,11 @@ export function chiSquareStreakFit(
       expected.push(e);
     }
   }
-  if (poolExp > 0) {
-    lengths.push(-1); // sentinel: ">= first pooled length"
+  // Fold the geometric tail beyond maxLen into the pooled bin so Σexpected ==
+  // Σobserved exactly (proper conditional multinomial GoF).
+  poolExp += nRuns - (expected.reduce((s, v) => s + v, 0) + poolExp);
+  if (poolObs > 0 || poolExp > 0) {
+    lengths.push(-1);
     observed.push(poolObs);
     expected.push(poolExp);
   }
@@ -292,5 +313,15 @@ export function chiSquareStreakFit(
     if (expected[i] > 0) chi2 += (observed[i] - expected[i]) ** 2 / expected[i];
   }
   const df = Math.max(1, observed.length - 1);
-  return { lengths, observed, expected, chi2, df, pValue: chiSquareSf(chi2, df) };
+  return {
+    baseline: "fair market — geometric run lengths (conditional on run count)",
+    pLoss,
+    nRuns,
+    lengths,
+    observed,
+    expected,
+    chi2,
+    df,
+    pValue: chiSquareSf(chi2, df),
+  };
 }

@@ -11,7 +11,6 @@ import {
   binomialTest,
   bootstrapMeanCI,
   chiSquareStreakFit,
-  expectedRunCounts,
   ljungBox,
   monteCarloMaxStreak,
   runsTest,
@@ -137,14 +136,18 @@ function computeSignificance(
   const runs = runsTest(wl, o.nWins, o.nLosses);
   const lb = ljungBox(wl, LJUNG_BOX_LAGS);
 
-  // Observed vs expected loss-streak length frequency.
+  // Observed vs expected loss-streak length frequency. Expected = the geometric
+  // run-length distribution implied by an iid market, conditioned on the observed
+  // number of loss runs (so totals match) — see chiSquareStreakFit.
   const hist = block.sequences.lossStreakHistogram;
   const kmax = Math.max(...Object.keys(hist).map(Number), 1);
   const ks = Array.from({ length: kmax }, (_, i) => i + 1);
   const observed = ks.map((k) => hist[k] || 0);
-  const expFair = expectedRunCounts(N, lossRateFair, ks);
-  const expOwn = expectedRunCounts(N, o.lossRate, ks);
-  const chiFit = chiSquareStreakFit(hist, (k) => expectedRunCounts(N, lossRateFair, [k])[0]);
+  const nRuns = observed.reduce((s, v) => s + v, 0);
+  const geom = (pLoss: number, k: number): number => nRuns * (1 - pLoss) * pLoss ** (k - 1);
+  const expFair = ks.map((k) => geom(lossRateFair, k));
+  const expOwn = ks.map((k) => geom(o.lossRate, k));
+  const chiFit = chiSquareStreakFit(hist, lossRateFair);
 
   return {
     expected_value: {
@@ -204,8 +207,9 @@ function computeSignificance(
     loss_streak_frequency: {
       lengths: ks,
       observed,
-      expected_fair_rr: expFair,
-      expected_own_rate: expOwn,
+      n_runs: nRuns,
+      expected_fair_geometric: expFair,
+      expected_own_geometric: expOwn,
       chi_square_fit: chiFit,
     },
     execution_summary: {

@@ -4,6 +4,10 @@ Statistically rigorous analysis of the Binance **USD-M futures** trading account
 defensible expert report (*Gutachten*). The engine lives in **`src/stats/`** (TypeScript) and reads
 the official Binance exports from **`account/futures/USD-M/`**.
 
+Public repository (code + raw data, fully reproducible): **https://github.com/mahapo/binance-case-stats**.
+Built with the assistance of **Claude Opus 4.8** (Anthropic); every analytic statistic is independently
+cross-validated against SciPy (`npm run stats:validate`).
+
 ## What's here
 
 | File | Description |
@@ -42,9 +46,17 @@ npm run stats:report       # -> docs/stats/GUTACHTEN.html
 
 **`GUTACHTEN.pdf`** is the print-ready report (A4, all charts embedded).
 
+```bash
+# (optional) Independently cross-check every analytic statistic against SciPy
+npm run stats:validate     # asserts computed_values.json == scipy recomputation
+```
+
 All statistics are computed once in TypeScript (`src/stats/significance.ts`, analytic p-values via the
 standard normal/χ²/t routines in `src/stats/mathx.ts`); Python only renders. The random seed is fixed
-(`20260601`, mulberry32), so the Monte-Carlo and bootstrap figures are reproducible.
+(`20260601`, mulberry32), so the Monte-Carlo and bootstrap figures are reproducible. **`stats:validate`
+re-derives the runs test, exact binomial (overall + per year), t-test, Wilson CI, Ljung-Box and the
+conditional χ² with SciPy and confirms agreement to machine precision** — the from-scratch numerics are
+not taken on trust.
 
 ## Headline results
 
@@ -67,9 +79,10 @@ standard normal/χ²/t routines in `src/stats/mathx.ts`); Python only renders. T
   frequency, not a significant negative mean.
 - Longest loss streak **32 positions**; Monte-Carlo **p = 0.004** under a *fair market* (R:R-implied
   33.43 % breakeven win rate); p = 0.029 under the trader's own loss rate (robustness).
-- **Runs test z = −11.10, p ≈ 1.3×10⁻²⁸**; **Ljung-Box Q₂₀ = 317, p < 0.001**; **χ² streak-fit
-  p < 0.001** → outcomes are strongly clustered / serially dependent, i.e. **not** a fair independent
-  random process.
+- **Runs test z = −11.10, p ≈ 1.3×10⁻²⁸**; **Ljung-Box Q₂₀ = 317, p < 0.001**; **conditional χ²
+  streak-length fit χ² = 289, df = 11, p < 0.001** → outcomes are strongly clustered / serially
+  dependent, i.e. **not** a fair independent random process. (Limitation stated openly in the report:
+  the time-varying yearly win rate contributes to the measured dependence.)
 - **Robustness (order vs position):** win rate 31.84 %→29.04 %, max loss streak 29→32 — the streak
   finding survives the unit definition (the order-level 29 was partly inflated by partial closes).
 - **Data integrity:** the engine's fill→order grouping reproduces Binance's own `orders/` ledger over
