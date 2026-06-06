@@ -2,9 +2,9 @@
   "scripts": {
     "test": "npx jest",
     "backtest": "npx ts-node src/backtest.ts",
-    "report": "npx ts-node src/report.ts",
     "download": "npx ts-node src/data/downloadAggTrades.ts",
     "fetch:brackets": "npx ts-node src/data/fetchBrackets.ts",
+    "pdf": "node scripts/md-to-pdf.js",
     "stats": "npx ts-node src/stats/analyze.ts",
     "stats:verify": "npx ts-node src/stats/verifyGrouping.ts",
     "stats:streaks": "npx ts-node src/stats/exportLossStreaks.ts",
@@ -21,6 +21,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.1",
     "jest": "^30.4.2",
+    "marked": "^12.0.2",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
   }

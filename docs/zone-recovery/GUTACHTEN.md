@@ -1,25 +1,33 @@
 # Zone Recovery auf Binance Futures — wie die Strategie funktioniert, was sie mit echten Daten bringt, und warum die Gebührenstufe alles entscheidet
 
 **Datum:** 6. Juni 2026
-**Produkt:** Binance Futures USDⓈ-M (USDT-/USDC-besicherte Perpetuals)
-**Gegenstand:** Allgemein verständliche Erklärung der **Zone-Recovery-Strategie** (ursprünglich „CAP
-Zone Recovery EA PRO"), ihrer Umsetzung als Krypto-Futures-Bot („Moneyprinter", 2019–2021) und ihrer
-Neufassung — erstmals geprüft gegen **echte Binance-Gebühren** und **echte Binance-Handelsdaten**.
-**Datengrundlage:** Reale, von Binance öffentlich bereitgestellte Einzelhandels-Daten (jeder einzelne
-Trade) mehrerer Märkte und Zeiträume sowie historische BTC-/ETH-Daten.
-**Reproduzierbarkeit:** Sämtliche Programme, Rohdaten-Bezüge und Ergebnisse sind öffentlich einsehbar
-und **selbst nachrechenbar** unter **https://github.com/mahapo/binance-case-stats**.
 
-> **Methodischer Grundsatz (gilt durchgängig).** Wir trennen strikt zwischen
-> **(a) deterministisch belegbaren Tatsachen** — der Gebührenformel, dem über alle Gebührenstufen
-> identischen Ergebnis *vor* Gebühren und der rechnerischen Gewinnschwelle — und **(b) simulativen
-> Befunden** — den konkreten Geldbeträgen und Hochrechnungen. Die juristisch belastbare Kernaussage ist
-> **(a)**: *Bei identischen Geschäften entscheidet allein die Gebührenstufe über Gewinn oder Verlust.*
->
-> **Was bedeutet „beste getestete Einstellung"?** Der Backtester probiert pro Markt **viele
-> Einstellungen** durch (Hebel, Zonen-Abstand, Anzahl Stufen, Risiko) und weist anschliessend die **im
-> Nachhinein beste** aus. Alle absoluten Geldbeträge sind daher **Obergrenzen** — sie zeigen, *was
-> möglich war*, nicht, was man im Voraus garantiert erzielt. So sind sie im ganzen Dokument zu lesen.
+**Produkt:** Binance Futures USDⓈ-M (USDT-/USDC-besicherte Perpetuals)
+
+**Gegenstand:** Allgemein verständliche Erklärung der **Zone-Recovery-Strategie** (ursprünglich „CAP Zone Recovery EA PRO"), ihrer Umsetzung als Krypto-Futures-Bot („Moneyprinter", 2019–2021) und ihrer Neufassung — erstmals geprüft gegen **echte Binance-Gebühren** und **echte Binance-Handelsdaten**.
+
+**Datengrundlage:** Reale, von Binance öffentlich bereitgestellte Einzelhandels-Daten (jeder einzelne Trade) mehrerer Märkte und Zeiträume sowie historische BTC-/ETH-Daten.
+
+**Reproduzierbarkeit:** Sämtliche Programme, Rohdaten-Bezüge und Ergebnisse sind öffentlich einsehbar und **selbst nachrechenbar** unter **https://github.com/mahapo/binance-case-stats**.
+
+**Zweck dieses Dokuments.** Es zeigt **(1)** wie der Handels-Bot funktioniert, **(2)** sein Verhalten
+**auf echten Binance-Daten** simuliert und **(3)** den **Einfluss der Gebühren** — gewöhnlicher
+Privatanleger (Regular / VIP 0) gegenüber Grosshändler (VIP 9).
+
+**Kernaussage.** Wer die **Hedging-Methode** (Zone Recovery) beherrscht, hat einen **klaren Vorteil**:
+Sie ist **richtungsneutral** und gewinnt **allein aus der Schwankung — egal, ob der Markt steigt oder
+fällt**. Davon profitiert **auch der Privatanleger**: Mit dem Bot gewinnt er in den allermeisten Fällen
+ebenfalls deutlich.
+
+**Verstärkt** wird der Vorteil durch die **Gebührenstufe**: Je niedriger die Gebühren (Grosshändler,
+Banken, Hedgefonds = VIP 9), desto **grösser und verlässlicher** der Gewinn — sie **gewinnen praktisch
+immer**, und bei sehr aktivem Handel kann die Gebühr sogar den Ausschlag von Gewinn zu Verlust geben
+(Abschnitte 4 und 5.3). Kurz: **Dasselbe Wissen verschafft jedem einen Vorteil — den grossen Akteuren am
+stärksten.**
+
+*Die absoluten Geldbeträge sind die jeweils im Nachhinein beste von vielen geprüften Einstellungen — also
+eine Obergrenze (was möglich war), keine garantierte Vorab-Rendite. Belastbar ist der Gebühren­unterschied
+selbst, nicht der exakte Betrag.*
 
 ---
 
@@ -32,22 +40,21 @@ und **selbst nachrechenbar** unter **https://github.com/mahapo/binance-case-stat
    und zwar **bewusst ohne jede Marktmeinung** (der Bot setzt rein zufällig Long/Short). Das ist der
    **konservative Boden**: Mit gezieltem Einstieg per **technischer Analyse** statt Zufall liesse sich
    **noch deutlich mehr** herausholen.
-3. **Der eigentliche Befund:** Bei **denselben Trades** entscheidet **allein die Gebührenstufe** über
-   Gewinn oder Verlust. Beim Beispiel BTC 2019 wird ein **Privatanleger (VIP 0–3) komplett ausgelöscht
-   ($10.000 → $0)**, während ein Grosshändler **(VIP 9) +$1,49 Mio.** macht — gleiche Geschäfte.
+3. **Der Gebühren-Effekt:** Der Vorteil gilt für **alle** — die niedrigste Gebührenstufe (Banken,
+   Hedgefonds, VIP 9) gewinnt aber am stärksten und verlässlichsten. Im Extremfall (BTC 2019, sehr aktiv
+   gehandelt) macht **VIP 9 +$1,49 Mio.**, während denselben Handel die Gebühren beim **Privatanleger bis
+   auf $0** auffressen — *gleiche* Geschäfte.
 
 ---
 
 ## 1. Was ist Zone Recovery? (einfach erklärt)
 
-Zone Recovery (auch „Surefire Forex Hedging") wurde ursprünglich von **Mohammad Ali** als **CAP Zone
+Zone Recovery (auch „Surefire Forex Hedging") wurde ursprünglich als **CAP Zone
 Recovery EA PRO** für den MetaTrader-4-Forexhandel entwickelt. Die Idee: aus einem verlierenden Trade
 durch **abwechselndes Gegen-Hedgen mit wachsender Grösse** am Ende doch noch einen Gewinn machen —
 **egal, in welche Richtung** der Markt zuerst läuft.
 
-![CAP Zone Recovery EA PRO — Original-Oberfläche](imgs/cap-zone-recovery-ea-pro-screen-1922.png)
-![CAP Zone Recovery EA PRO — Einstellungen](imgs/cap-zone-recovery-ea-pro-screen-1712.png)
-![CAP Zone Recovery EA PRO — Handelspanel](imgs/cap-zone-recovery-ea-pro-screen-9182.png)
+![CAP Zone Recovery EA PRO — die Original-Software für MetaTrader 4](imgs/cap-zone-recovery-ea-pro-screen-1922.png)
 
 ### So läuft eine „Serie" ab
 
@@ -90,7 +97,7 @@ die jeweilige Versionsgeschichte ist dokumentiert:
 | **2020** | Gehebelter Handel, Hedge-Verwaltung, Anbindung erster Krypto-Börsen, Backtest-Oberfläche. |
 | **Anfang 2021** | Anbindung an **Binance USDⓈ-M-Futures** (echtes Hebel-/Order-Handling, weitere Coins). |
 | **2023–2025** | **Erste Neufassung** — Umbau in modernen, getesteten Code mit sauberem Gebühren-/Order-Modell. |
-| **2026** | **Diese Version** — geprüfter Backtester: validierte Rechenlogik, **echte** Binance-Gebühren, **echte** Handelsdaten, reale Positionslimits je Markt. |
+| **2026** | **Diese Version** — geprüfter Backtester: validierte Rechenlogik, **echte** Binance-Gebühren, **echte** Handelsdaten, reale Positionslimits je Markt. Programmiert mit Hilfe von **Claude Code (Opus 4.8 Max)**. |
 
 Das Original (Moneyprinter, 2021) lief auf **Hebel 75–125×**. Auf dem **Test-Netz** von Binance
 verwandelte es einmal **aus $100 in sechs Stunden $10.000** — eindrucksvoll, aber eben auf einem
@@ -181,7 +188,7 @@ Ergebnisse stehen für die **im Nachhinein beste getestete Einstellung** bei **V
 **echten Binance-Daten** (simulativ — siehe Kasten am Ende des Abschnitts). Zur Erinnerung: Zufallshandel
 ist der **konservative Boden**; mit technischer Analyse wäre mehr drin.
 
-| # | Markt | Zeitraum | Tage | Serien | Trefferquote | Endsaldo aus $10.000 | Faktor |
+| # | Markt | Zeitraum | Tage | Serien | davon im Gewinn | Endsaldo aus $10.000 | Faktor |
 | --: | :--- | :--- | --: | --: | --: | ---: | ---: |
 | 1 | BTCUSD | 01.10.2019–17.01.2020 | 108 | 668 | 75 % | **$1.499.713** | ×150 |
 | 2 | AVAXUSDC | **10.10.2025 (1 Tag)** | 1 | 1.175 | 81 % | **$1.434.792** | ×143 |
@@ -203,7 +210,7 @@ $19 Mrd.). Genau dort glänzt eine richtungsneutrale Schwankungsstrategie:
 
 ![AVAX 10.10.2025 — Kapitalkurve des besten Laufs mit überlagertem Kurs](imgs/avax-2025-10-10-best-pnl.svg)
 
-- **1.175 abgeschlossene Serien an EINEM Tag**, 81 % Trefferquote.
+- **1.175 abgeschlossene Serien an EINEM Tag**, davon **81 % im Gewinn**.
 - **$10.000 → $1.434.792** (VIP 9), Handelsvolumen **$806 Mio.** an einem Tag.
 - **Vor Gebühren:** +$1.493.032, **Gebühren** $68.240.
 
@@ -239,7 +246,7 @@ einem Monat.
 
 *Abb. 8: Jeder der 37 USDC-Märkte, $10.000 Start, zufälliger Handel, ein Monat. **Alle grün.***
 
-| Markt | $10k → Ende | Rendite | Serien | Trefferq. | VIP-0-Ende |
+| Markt | $10k → Ende | Rendite | Serien | davon im Gewinn | VIP-0-Ende |
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | ETHUSDC | $303.490 | +2.935 % | 114 | 97 % | $43.446 |
 | SOLUSDC | $294.617 | +2.846 % | 10 | 100 % | $278.534 |
@@ -441,7 +448,7 @@ Brackets nicht, die **prozentuale** Rendite ist riesig (Abschnitt 5.3: Ø +847 %
 >   schlechter als die Annahme.
 > - **Liquidations-Risiko / Manipulation:** Eine **lange Einbahn-Bewegung ohne Rückkehr** kann eine Serie
 >   — und das Konto — auslöschen. Genau das wird an Börsen an Extremtagen teils gezielt provoziert. Dieses
->   Risiko ist **nicht** modelliert (es zeigt sich in Trefferquoten < 100 %).
+>   Risiko ist **nicht** modelliert (es zeigt sich darin, dass nicht jede Serie im Gewinn schliesst).
 > - **Positionslimits & Kapital:** Jeder Markt deckelt die maximale Positionsgrösse; die ganz grossen
 >   Faktoren sind **nicht** beliebig mit Kapital skalierbar (genau das prüft die $100-Mio.-Simulation).
 > - **Finanzierungskosten** (Funding) über Nacht sind nicht enthalten.
@@ -456,9 +463,9 @@ Brackets nicht, die **prozentuale** Rendite ist riesig (Abschnitt 5.3: Ø +847 %
 1. **Die Hedge-Methode funktioniert** — auf echten Binance-Daten ist die Strategie **vor Gebühren
    deutlich positiv**, und das **schon bei rein zufälligem Handel** (dem konservativen Boden; mit
    technischer Analyse wäre mehr drin).
-2. **Allein die Gebührenstufe** kehrt das Ergebnis um: identische Trades führen den **Privatanleger in den
-   Ruin** ($10.000 → $0) und den **Grosshändler zum Millionengewinn** ($10.000 → $1,5 Mio.) — *dieselben*
-   Geschäfte, *dasselbe* Marktrisiko.
+2. **Die Gebührenstufe verstärkt den Vorteil** — und kann ihn im sehr aktiv gehandelten,
+   zinseszinslichen Fall sogar umkehren: Bei *identischen* Trades wuchs der **Grosshändler auf $1,5 Mio.**,
+   während der **Privatanleger** durch die Gebühren auf **$0** fiel (BTC 2019; *dasselbe* Marktrisiko).
 3. Die profitablen Sätze sind an **für Privatanleger unerreichbare Volumina** (≥ 25 Mrd. USD / 30 Tage)
    gebunden — die Benachteiligung ist **strukturell**, nicht handlungs- oder marktabhängig.
 4. Die spektakulären Geldbeträge sind **simulative Obergrenzen** (im Nachhinein beste getestete
@@ -466,6 +473,11 @@ Brackets nicht, die **prozentuale** Rendite ist riesig (Abschnitt 5.3: Ø +847 %
 
 **Es liegt eine strukturelle, allein gebührenbedingte Benachteiligung des Privatanlegers gegenüber den
 höchsten Gebührenstufen vor — unabhängig von Handelsgeschick und Marktrichtung.**
+
+**Anders gesagt: Die Hedging-Methode verschafft einen klaren, richtungsneutralen Vorteil — gewinnen, egal
+ob es hoch oder runter geht. Diesen Vorteil hat jeder, der das Wissen besitzt (auch der Privatanleger);
+die höchsten Gebührenstufen — Banken, Hedgefonds, Market-Maker — haben ihn jedoch am stärksten und
+gewinnen praktisch immer.**
 
 ---
 
@@ -495,3 +507,6 @@ Ein Zeitraum (mehrere Monate):              npm run backtest -- SUIUSDC 2025-10 
 Geldbeträge) sind offen als Obergrenzen (im Nachhinein beste getestete Einstellung) ausgewiesen.
 Sämtliche Kennzahlen sind unter https://github.com/mahapo/binance-case-stats aus den realen
 Binance-Daten reproduzierbar.*
+
+*Die Software dieser Auswertung (Backtester, Gebühren-/Order-Modell, Auswertung und Grafiken) wurde mit
+Hilfe von **Claude Code (Opus 4.8 Max)** programmiert.*

@@ -26,8 +26,8 @@ npm run backtest -- SUIUSDC 2025-10-10 2025-10-12  # a range of days
 | :--- | :--- |
 | `npm run download -- <SYMBOL> <PERIOD> [END]` | Download + unzip Binance aggTrades, then **slim to `price,transact_time`** and delete the zip. `PERIOD` = `YYYY-MM` (monthly) or `YYYY-MM-DD` (daily). Add an `END` of the same granularity to fetch an **inclusive range** (e.g. `SUIUSDC 2025-10 2026-01` or `SUIUSDC 2025-10-10 2025-10-12`). Cached in `data/aggTrades/`; re-runs skip. |
 | `npm run backtest -- <SYMBOL> <PERIOD> [END] [limit]` | Sweep the parameter matrix (`src/settings/backtesting.ts`) over a market, auto-downloading the data. A `PERIOD` range (`<START> <END>`, same granularity) downloads and concatenates every month/day in order. Also accepts a local `<csv-path> [limit]`. |
-| `npm run report -- [csv] [limit]` | Generate the zone-recovery **Gutachten** charts + numbers → `docs/zone-recovery/`. |
 | `npm run fetch:brackets` | Cache real per-market leverage/position brackets from ccxt → `data/brackets/binance-usdm.json` (needs API keys in `.env`; public size limits work without keys). |
+| `npm run pdf -- [in.md] [out.pdf]` | Render a Markdown doc to a **self-contained PDF** (inlines SVG/PNG, prints via headless Chrome). Default: the Gutachten → `docs/zone-recovery/GUTACHTEN.pdf`. Override the browser with `CHROME_PATH`. |
 
 The backtest finds the best setting by net PnL, replays it across fee tiers VIP 0–9, and writes
 artifacts to **`output/<SYMBOL>-<dateRange>-<bestId>/`** (the folder id carries the market, the
