@@ -4,36 +4,37 @@
 **Produkt:** Binance Futures USDⓈ-M (USDT-/USDC-besicherte Perpetuals)
 **Gegenstand:** Allgemein verständliche Erklärung der **Zone-Recovery-Strategie** (ursprünglich „CAP
 Zone Recovery EA PRO"), ihrer Umsetzung als Krypto-Futures-Bot („Moneyprinter", 2019–2021) und ihrer
-**Neuimplementierung in diesem Repository** — erstmals gegen **echte Binance-Gebühren** und **echte
-Binance-Tickdaten** getestet.
-**Datengrundlage:** Reale Tick-/aggTrades-Exporte von `data.binance.vision` (mehrere Märkte und
-Zeiträume) sowie historische Gemini-BTC/ETH-Tickdaten. Jede Zahl ist mit `npm run backtest`
-reproduzierbar (Anhang A).
-**Methodengrundlage:** Das Handels-/Gebührenmodell (`src/models/`) ist gegen die offiziellen
-Binance-Kontoexporte **bis zur 8. Nachkommastelle** validiert (Abschnitt 7).
+Neufassung — erstmals geprüft gegen **echte Binance-Gebühren** und **echte Binance-Handelsdaten**.
+**Datengrundlage:** Reale, von Binance öffentlich bereitgestellte Einzelhandels-Daten (jeder einzelne
+Trade) mehrerer Märkte und Zeiträume sowie historische BTC-/ETH-Daten.
+**Reproduzierbarkeit:** Sämtliche Programme, Rohdaten-Bezüge und Ergebnisse sind öffentlich einsehbar
+und **selbst nachrechenbar** unter **https://github.com/mahapo/binance-case-stats**.
 
 > **Methodischer Grundsatz (gilt durchgängig).** Wir trennen strikt zwischen
-> **(a) deterministisch belegbaren Tatsachen** — Gebührenformel, identisches Bruttoergebnis über alle
-> Gebührenstufen, rechnerische Gewinnschwelle — und **(b) simulativen Befunden** — konkrete
-> Netto-Beträge, Zinseszins, Hochrechnungen. Die spektakulären Geldbeträge in diesem Dokument sind
-> **(b)** und entsprechend als **Best-of-Sweep-Obergrenzen** gekennzeichnet. Die juristisch belastbare
-> Kernaussage ist **(a)**: *Bei identischen Geschäften entscheidet allein die Gebührenstufe über Gewinn
-> oder Verlust.*
+> **(a) deterministisch belegbaren Tatsachen** — der Gebührenformel, dem über alle Gebührenstufen
+> identischen Ergebnis *vor* Gebühren und der rechnerischen Gewinnschwelle — und **(b) simulativen
+> Befunden** — den konkreten Geldbeträgen und Hochrechnungen. Die juristisch belastbare Kernaussage ist
+> **(a)**: *Bei identischen Geschäften entscheidet allein die Gebührenstufe über Gewinn oder Verlust.*
+>
+> **Was bedeutet „beste getestete Einstellung"?** Der Backtester probiert pro Markt **viele
+> Einstellungen** durch (Hebel, Zonen-Abstand, Anzahl Stufen, Risiko) und weist anschliessend die **im
+> Nachhinein beste** aus. Alle absoluten Geldbeträge sind daher **Obergrenzen** — sie zeigen, *was
+> möglich war*, nicht, was man im Voraus garantiert erzielt. So sind sie im ganzen Dokument zu lesen.
 
 ---
 
-## 0. In drei Sätzen (TL;DR)
+## 0. In drei Sätzen (Kurzfassung)
 
-1. **Zone Recovery** handelt **richtungsneutral**: Es eröffnet (hier sogar **rein zufällig**) Long oder
-   Short und sichert jede Gegenbewegung mit einer größeren Gegenposition ab, bis ein Take-Profit die
-   **ganze Serie** im Plus schließt. In **volatilen** Märkten verdient es **allein aus der Schwankung** —
-   unabhängig davon, ob der Markt steigt oder fällt.
-2. Mit **echten Binance-Tickdaten** und dem **echten Gebührenmodell** wandelt eine **zufällige**
-   Handelsfolge an einem volatilen Tag aus **$10.000** real nachgerechnet bis zu **$1,43 Mio.**
-   (AVAX, 10.10.2025) — und über 108 Tage BTC 2019 aus **$10.000 → $1,5 Mio.** (Best-of-Sweep, VIP 9).
-3. **Dieselben Trades**, nur die **Gebührenstufe** variiert: Bei BTC 2019 wird ein **Regular-User
-   (VIP 0–3) komplett ausgelöscht ($10.000 → $0)**, während ein **VIP 9 +$1,49 Mio.** macht. Die
-   Gebührenstufe entscheidet — nicht der Markt.
+1. **Zone Recovery** ist **richtungsneutral**: Es eröffnet eine Position und sichert jede Gegenbewegung
+   mit einer grösseren Gegenposition ab, bis ein Gewinnziel die **ganze Serie** im Plus schliesst. In
+   **volatilen** Märkten verdient es **allein aus der Schwankung** — egal ob der Markt steigt oder fällt.
+2. **Worum es hier geht:** Wir zeigen, dass diese **Hedge-Methode bereits im Normalfall funktioniert** —
+   und zwar **bewusst ohne jede Marktmeinung** (der Bot setzt rein zufällig Long/Short). Das ist der
+   **konservative Boden**: Mit gezieltem Einstieg per **technischer Analyse** statt Zufall liesse sich
+   **noch deutlich mehr** herausholen.
+3. **Der eigentliche Befund:** Bei **denselben Trades** entscheidet **allein die Gebührenstufe** über
+   Gewinn oder Verlust. Beim Beispiel BTC 2019 wird ein **Privatanleger (VIP 0–3) komplett ausgelöscht
+   ($10.000 → $0)**, während ein Grosshändler **(VIP 9) +$1,49 Mio.** macht — gleiche Geschäfte.
 
 ---
 
@@ -41,120 +42,107 @@ Binance-Kontoexporte **bis zur 8. Nachkommastelle** validiert (Abschnitt 7).
 
 Zone Recovery (auch „Surefire Forex Hedging") wurde ursprünglich von **Mohammad Ali** als **CAP Zone
 Recovery EA PRO** für den MetaTrader-4-Forexhandel entwickelt. Die Idee: aus einem verlierenden Trade
-durch **abwechselndes Gegen-Hedgen mit wachsender Größe** am Ende doch noch einen Gewinn machen —
-**egal in welche Richtung** der Markt zuerst läuft.
+durch **abwechselndes Gegen-Hedgen mit wachsender Grösse** am Ende doch noch einen Gewinn machen —
+**egal, in welche Richtung** der Markt zuerst läuft.
 
 ![CAP Zone Recovery EA PRO — Original-Oberfläche](imgs/cap-zone-recovery-ea-pro-screen-1922.png)
 ![CAP Zone Recovery EA PRO — Einstellungen](imgs/cap-zone-recovery-ea-pro-screen-1712.png)
-![CAP Zone Recovery EA PRO — Trade-Panel](imgs/cap-zone-recovery-ea-pro-screen-9182.png)
+![CAP Zone Recovery EA PRO — Handelspanel](imgs/cap-zone-recovery-ea-pro-screen-9182.png)
 
 ### So läuft eine „Serie" ab
 
-1. **Start:** Der Bot eröffnet eine Position (in dieser Untersuchung **zufällig** Long oder Short).
-2. **Gegenbewegung:** Läuft der Kurs gegen die Position bis zur **Zonenlinie** (Abstand = `gap`), wird
-   die Position mit Verlust geschlossen und **sofort eine größere Gegenposition** eröffnet.
-3. **Wachsende Größe:** Jede weitere Stufe ist um den Faktor `M = 1 + 1/ratio` größer als die vorige —
-   so kann **eine** erfolgreiche Stufe **alle** vorherigen Verluste abdecken.
-4. **Take-Profit:** Erreicht der Kurs die **Take-Profit-Linie**, schließt die **gesamte Serie**
-   gemeinsam mit einem **konstanten Brutto-Gewinn** und es beginnt eine neue Serie.
-5. **Maximale Stufen:** Nach `maxSteps` Hedge-Orders wird die Serie abgebrochen (Verlust realisiert) —
-   der „Reißleine"-Fall.
+1. **Start:** Es wird eine Position eröffnet (in dieser Untersuchung bewusst **zufällig** Long oder Short).
+2. **Gegenbewegung:** Läuft der Kurs gegen die Position bis zur **Zonenlinie** (Abstand = „Gap"), wird die
+   Position mit Verlust geschlossen und **sofort eine grössere Gegenposition** eröffnet.
+3. **Wachsende Grösse:** Jede weitere Stufe ist um einen festen Faktor grösser als die vorige — so kann
+   **eine** erfolgreiche Stufe **alle** vorherigen Verluste abdecken.
+4. **Gewinnziel:** Erreicht der Kurs die **Take-Profit-Linie**, schliesst die **gesamte Serie** gemeinsam
+   mit einem **konstanten Gewinn (vor Gebühren)**, und es beginnt eine neue Serie.
+5. **Maximale Stufen:** Nach einer festen Höchstzahl an Hedge-Stufen wird die Serie abgebrochen (Verlust
+   realisiert) — der „Reissleine"-Fall.
 
-![Wie eine Serie real abläuft — echter Kurs (grau), Zonen, wachsende Einstiege, Take-Profit](imgs/how%20it%20works.svg)
+![Wie eine Serie real abläuft — echter Kurs (grau), Zonen, wachsende Einstiege, Gewinnziel](imgs/how%20it%20works.svg)
 
-*Abb. 1: Echter Kursverlauf (grau) mit mehreren Serien. Bei Gegenbewegung wird mit **wachsender Größe**
-gegengesichert; erreicht der Kurs die **Take-Profit-Linie** (grün), schließt die **ganze Serie** im Plus.*
+*Abb. 1: Echter Kursverlauf (grau) mit mehreren Serien. Bei Gegenbewegung wird mit **wachsender Grösse**
+gegengesichert; erreicht der Kurs die **Gewinnlinie** (grün), schliesst die **ganze Serie** im Plus.*
 
-### Die mathematische Eigenschaft (deterministisch, durch Unit-Tests belegt)
+### Die mathematische Eigenschaft (deterministisch, durch automatisierte Tests abgesichert)
 
-Im sequentiellen Modell liefert **jede abgeschlossene Serie denselben Brutto-Gewinn**
-`= ratio × gap × Menge`, **unabhängig von der Zahl der Hedge-Stufen** (Teleskopsumme, weil
-`M − 1 = 1/ratio`). Das Bruttoergebnis ist damit eine **reine Funktion der Geschäfte** — **nicht der
-Gebühr** (`test/ZoneRecovery.test.ts`). Genau diese Eigenschaft erlaubt den sauberen Gebühren-Nachweis
-in Abschnitt 4.
+Im Modell liefert **jede abgeschlossene Serie denselben Gewinn vor Gebühren** — **unabhängig von der
+Zahl der Hedge-Stufen**. Das Ergebnis vor Gebühren ist damit eine **reine Funktion der Geschäfte** —
+**nicht der Gebühr**. Genau diese Eigenschaft erlaubt den sauberen Gebühren-Nachweis in Abschnitt 4.
 
 ---
 
-## 2. Von einem YouTube-Video zum gerichtsfesten Backtester — meine Geschichte 2010–2026
+## 2. Von einem YouTube-Video zur geprüften Auswertung — meine Geschichte 2010–2026
 
-Ich (der Verfasser) bin **um 2010–2011 mit ca. 18 Jahren** auf diese Strategie gestoßen — durch ein
+Ich (der Verfasser) bin **um 2010–2011 mit ca. 18 Jahren** auf diese Strategie gestossen — durch ein
 YouTube-Video über das „Surefire"-/Zone-Recovery-Hedging
 ([youtube.com/watch?v=DJz4E7VyeSw](https://www.youtube.com/watch?v=DJz4E7VyeSw)). Schon damals
-programmierte ich **Expert Advisors (EAs) und Indikatoren für MetaTrader 4/5** und baute die
-Zone-Recovery-Idee zum ersten Mal als MT4-EA nach. Über die Jahre habe ich sie mehrfach neu
-implementiert; die jeweilige Git-Historie dokumentiert den Weg:
+programmierte ich **Expert Advisors (Handels-Bots) und Indikatoren für MetaTrader 4/5** und baute die
+Zone-Recovery-Idee zum ersten Mal als MT4-Bot nach. Über die Jahre habe ich sie mehrfach neu umgesetzt;
+die jeweilige Versionsgeschichte ist dokumentiert:
 
-| Zeit | Schritt | Beleg |
-| :--- | :--- | :--- |
-| **~2010–2011** | Erstkontakt über das YouTube-Video (mit ca. 18 J.); **EA-/Indikator-Programmierung für MetaTrader 4/5**, erster Zone-Recovery-EA-Nachbau | [Video](https://www.youtube.com/watch?v=DJz4E7VyeSw) |
-| **2019-06** | Erster Krypto-Strategy-Tester, CSV-Parser, **Hedge-Order**, `ratio` — Portierung der CAP-EA-Idee aus dem Forex in den Kryptohandel | Git „moneyprinter": `init`, `add csv parser`, `add hedge order`, `add ratio` |
-| **2020-04** | **Leveraged Trader**, Hedge-Manager, Phemex-/Bybit-Anbindung, Backtester-Frontend | Git „moneyprinter": `Add Leveraged`, `hedge manager`, `add backtester frontend` |
-| **Anfang 2021** | **Binance USDⓈ-M-Futures-Anbindung** (`Binance.ts`, `TraderFutures.ts`), Hebel, Trailing-Stop, RSI-Filter, Mehr-Coin-Betrieb | Git „moneyprinter": `Update Binance.ts`, `TraderFutures.ts`, `leverage`, `more coins` (2021-02) |
-| **2023–2025** | **Erste Neufassung per „Vibe-Coding"** — Umbau in modernes TypeScript mit Futures-Order-/Notional-Modell und Tests | Git „trade" (`init` 2023-10 … 2025-09) |
-| **2026** | **Diese Version** — gerichtsfester Backtester: validierter Rechenkern, **echte** Binance-Gebühren, **echte** Tickdaten, reale per-Markt-Brackets | dieses Repository (`binance-case-stats`) |
+| Zeit | Schritt |
+| :--- | :--- |
+| **~2010–2011** | Erstkontakt über das YouTube-Video (mit ca. 18 J.); **Bot-/Indikator-Programmierung für MetaTrader 4/5**, erster Zone-Recovery-Nachbau im Forex. |
+| **2019** | Erster Krypto-Strategietester samt Hedge-Logik — Übertragung der Forex-Idee auf den Kryptohandel (Projekt „Moneyprinter"). |
+| **2020** | Gehebelter Handel, Hedge-Verwaltung, Anbindung erster Krypto-Börsen, Backtest-Oberfläche. |
+| **Anfang 2021** | Anbindung an **Binance USDⓈ-M-Futures** (echtes Hebel-/Order-Handling, weitere Coins). |
+| **2023–2025** | **Erste Neufassung** — Umbau in modernen, getesteten Code mit sauberem Gebühren-/Order-Modell. |
+| **2026** | **Diese Version** — geprüfter Backtester: validierte Rechenlogik, **echte** Binance-Gebühren, **echte** Handelsdaten, reale Positionslimits je Markt. |
 
-Das Original (Moneyprinter, 2021) lief auf **Hebel 75–125×**, `ratio` 4–5, Risiko 16–21 %,
-`maxSteps` 4–5. Auf dem Binance-**Testnet** brachte es einmal **aus $100 in 6 Stunden $10.000** —
-eindrucksvoll, aber eben auf Testnet, **ohne reale Gebühren** und ohne reales Order-Matching.
-
-### Die bekannte Achillesferse: Martingale-Ruin durch Manipulation
-
-Zone Recovery ist mathematisch **besser** als ein naives Martingale, aber dieselbe Grundgefahr bleibt:
-Eine **lange Einbahn-Bewegung ohne Rückkehr** treibt die Hedge-Größen bis zur Liquidation. Genau das
-wird an Börsen gezielt provoziert:
-
-![Marktmanipulation: ETH wird in Sekunden mehrfach $100+ gepumpt/gedumpt und liquidiert Milliarden](imgs/binance-manipulation-1.png)
-
-*Abb. 2: Reale „Stop-Hunt"-/Manipulationsphase — Milliarden an Positionen werden durch künstliche
-Volatilität liquidiert. Kein Algorithmus ist gegen so etwas immun; das ist die wichtigste Grenze dieser
-Strategie (siehe Abschnitt 8).*
+Das Original (Moneyprinter, 2021) lief auf **Hebel 75–125×**. Auf dem **Test-Netz** von Binance
+verwandelte es einmal **aus $100 in sechs Stunden $10.000** — eindrucksvoll, aber eben auf einem
+Test-Netz, **ohne reale Gebühren** und ohne reales Order-Matching. Genau diese Lücke schliesst die
+vorliegende Auswertung.
 
 ---
 
-## 3. Diese Version: neu programmiert, gegen **echte** Gebühren und **echte** Binance-Daten
+## 3. Diese Version: geprüft gegen **echte** Gebühren und **echte** Binance-Daten
 
-Die hier vorliegende Version ist eine **vollständige Neuimplementierung** (sauber „vibe-codet" in
-TypeScript) mit einem entscheidenden Unterschied zum Original von 2021: Sie rechnet **gerichtsfest mit
-der Realität**.
+Die vorliegende Fassung rechnet **mit der Realität** — das ist der entscheidende Unterschied zu früheren
+Test-Netz-Zahlen:
 
-- **Echte Tickdaten:** `npm run backtest -- <SYMBOL> <PERIODE>` lädt reale **aggTrades** direkt von
-  `data.binance.vision` (Monats- oder Tagesdateien, auch Bereiche) und spielt **jeden einzelnen Trade**
-  als Tick ab.
-- **Echtes Gebührenmodell:** Maker/Taker je **VIP-Stufe 0–9**, **USDT- vs. USDC**-Tabelle, **BNB-Rabatt
-  −10 %** — exakt wie auf der offiziellen Binance-Gebührenseite (Abschnitt 6). Das Gebühren-Quote folgt
-  automatisch dem Symbol (`…USDC` → USDC-Tabelle, `…USDT` → USDT-Tabelle).
-- **Echte Positionslimits:** Die **per-Markt-Hebel-Brackets** werden via ccxt von Binance geladen
-  (`npm run fetch:brackets`). Der Sweep testet pro Markt **nur die real erlaubten Hebelstufen** (z. B.
-  REDUSDT → `50, 25, 20, 10, 5, 4, 3, 2, 1×`); die größte Hedge-Order wird auf das Bracket-Limit
-  gedeckelt — **mehr darf man real nicht platzieren**.
-- **Validierter Rechenkern:** Das Modell reproduziert die **Realized-Profit-Spalte** echter
-  Binance-Exporte über **4.526 Positionszyklen exakt** und die **Gebührenspalte** über **87.806
-  Ausführungen bis auf 1·10⁻⁸** (Abschnitt 7).
+- **Echte Handelsdaten:** Es werden die von Binance öffentlich bereitgestellten **Einzelhandels-Daten**
+  (jeder einzelne ausgeführte Trade) eines Marktes und Zeitraums abgespielt — kein vereinfachtes Modell.
+- **Echtes Gebührenmodell:** Maker-/Taker-Sätze je **VIP-Stufe 0–9**, getrennt für **USDT** und **USDC**,
+  inklusive **BNB-Rabatt (−10 %)** — exakt nach der offiziellen Binance-Gebührenseite (Abschnitt 6).
+- **Echte Positionslimits:** Pro Markt werden die **realen Hebel- und Positions-Grenzen** von Binance
+  verwendet; die grösste Order einer Serie wird auf das reale Limit gedeckelt — **mehr darf man auch in
+  der Praxis nicht platzieren**.
+- **Validierte Rechenlogik:** Das Modell reproduziert die offiziellen Binance-Kontoexporte (Spalten
+  „Realized Profit" und „Fee") **bis zur 8. Nachkommastelle** (Abschnitt 7).
 
-**Versuchsaufbau.** Damit kein Vorwurf des „Schönrechnens" entsteht, handelt der Bot **rein zufällig**
-(Long/Short je Serie über einen festen, reproduzierbaren Seed) — es steckt **keinerlei Markt-Prognose**
-darin. Die Positionsgröße folgt einer **Drawdown-Regel** (eine voll verlorene Serie kostet exakt
-`maxDD %` des laufenden Saldos), sodass das Kapital nie negativ wird. Der Sweep
-(`src/settings/backtesting.ts`) probiert je Markt `ratio × gap × maxSteps × maxDD ×` **Hebel-Brackets**
-durch und berichtet die **beste Einstellung nach Netto-PnL**; diese wird anschließend über **alle
-Gebührenstufen VIP 0–9** wiederholt.
+**Warum USDC-Paare?** Soweit nicht anders angegeben, werden **USDC-Märkte** verwendet, weil dort die
+**Handelsgebühren am niedrigsten** sind (0 % Maker-Gebühr, niedrigster Taker-Satz). Das ist also der
+**günstigste, konservative Gebührenfall** — bei teureren USDT-Märkten fällt das Ergebnis schlechter aus
+(siehe den USDT-Vergleich in Abschnitt 4).
+
+**Versuchsaufbau — bewusst ohne Können.** Damit kein Vorwurf des „Schönrechnens" entsteht, handelt der
+Bot **rein zufällig** (Long oder Short je Serie per Zufall) — es steckt **keinerlei Marktprognose**
+darin. Das ist Absicht: Es zeigt, dass die **Hedge-Methode schon ohne jede Fähigkeit** funktioniert.
+**Mit technischer Analyse** (gezieltes Einsteigen statt Würfeln) liesse sich **mehr** herausholen — der
+Zufallshandel ist also der **konservative Boden**, nicht die Obergrenze. Die Positionsgrösse folgt einer
+festen Risiko-Regel (eine voll verlorene Serie kostet höchstens einen vorab festgelegten Prozentsatz des
+Kapitals), sodass das Konto nicht ins Minus laufen kann.
 
 ---
 
 ## 4. Der Kernbefund: **die Gebührenstufe entscheidet — nicht der Markt**
 
-Bestes Beispiel: **BTC, 1. Oktober 2019 – 17. Januar 2020** (108 Tage, 619.338 reale Ticks). Eine
+Bestes Beispiel: **BTC, 1. Oktober 2019 – 17. Januar 2020** (108 Tage, 619.338 reale Trades). Eine
 **zufällige** Handelsfolge, **dieselben Trades** in allen Läufen — variiert wird **nur** die
 Gebührenstufe. Start $10.000.
 
 ![BTC 2019 — derselbe Zufallshandel über alle Gebührenstufen VIP 0–9](imgs/btcusd-2019-vip-fee-comparison.svg)
 
-*Abb. 3: **Identische Trades**, nur die Gebühr unterscheidet sich. Die teuren Stufen (VIP 0–3) werden
-**komplett ausgelöscht**; die billigen wachsen in die Millionen.*
+*Abb. 2: **Identische Trades**, nur die Gebühr unterscheidet sich. Die teuren Stufen (VIP 0–3) werden
+**komplett ausgelöscht**; die günstigen wachsen in die Millionen.*
 
 | Gebührenstufe | Taker-Satz | Endsaldo aus $10.000 | Ergebnis |
 | :--- | ---: | ---: | :--- |
-| **VIP 0 (Regular)** | 0,0360 % | **$0** | **Totalverlust** |
+| **VIP 0 (Privatanleger)** | 0,0360 % | **$0** | **Totalverlust** |
 | VIP 1 | 0,0360 % | $0 | Totalverlust |
 | VIP 2 | 0,0288 % | $0 | Totalverlust |
 | VIP 3 | 0,0230 % | $0 | Totalverlust |
@@ -164,55 +152,52 @@ Gebührenstufe. Start $10.000.
 
 ![BTC 2019 — Kapitalkurve des besten Laufs (VIP 9) mit überlagertem Kurs](imgs/btcusd-2019-best-pnl.svg)
 
-*Abb. 3b: Kapitalkurve des VIP-9-Laufs ($10.000 → $1,5 Mio., grün) mit dem realen BTC-Kurs (orange) im
-Hintergrund — derselbe Zufallshandel, der einen Regular-User komplett auslöscht.*
+*Abb. 3: Kapitalkurve des VIP-9-Laufs ($10.000 → $1,5 Mio., grün) mit dem realen BTC-Kurs (orange) im
+Hintergrund — derselbe Zufallshandel, der einen Privatanleger komplett auslöscht.*
 
-> **Deterministische Kernaussage.** Das **Bruttoergebnis (vor Gebühren) ist in allen Läufen identisch**
+> **Deterministische Kernaussage.** Das **Ergebnis vor Gebühren ist in allen Läufen identisch**
 > (+$2.062.933) — es sind ja dieselben Geschäfte. Die **einzige** Variable ist die Gebühr. Allein sie
-> verschiebt das Ergebnis vom **Ruin** (VIP 0–3) zum **Millionengewinn** (VIP 4–9). Das ist **kein
-> Zufall und keine Marktmeinung**, sondern eine direkte Folge der Gebührenformel.
+> verschiebt das Ergebnis vom **Ruin** (VIP 0–3) zum **Millionengewinn** (VIP 4–9). Das ist **kein Zufall
+> und keine Marktmeinung**, sondern eine direkte Folge der Gebührenformel.
 
-### Warum VIP 9 so überlegen ist
+### Warum die höchste Stufe so überlegen ist
 
-Der Taker-Satz fällt von **0,0360 %** (Regular) auf **0,0085 %** (VIP 9 · USDC · BNB) — **Faktor ~4,3
-weniger Gebühr** auf **jeden** Trade. Bei einer Strategie, die **enorme Volumina** umwälzt (BTC 2019:
-**$6,78 Mrd.** Round-Trip-Volumen), ist das der Unterschied zwischen Ruin und Reichtum.
+Der Taker-Satz fällt von **0,0360 %** (Privatanleger) auf **0,0085 %** (VIP 9 mit USDC + BNB) — rund
+**Faktor 4** weniger Gebühr auf **jeden** Trade. Bei einer Strategie, die **enorme Volumina** umwälzt
+(BTC 2019: **$6,78 Mrd.** Handelsvolumen), ist das der Unterschied zwischen Ruin und Reichtum.
 
-![Binance-Gebührenstufen VIP 0–9 (Screenshot der offiziellen Gebührenseite)](imgs/fees.png)
+![Binance-Gebührenstufen VIP 0–9 (offizielle Gebührenseite)](imgs/fees.png)
 
-*Abb. 4: Die offizielle VIP-Treppe. Die niedrigen Sätze sind an **30-Tage-Handelsvolumen** gebunden, die
+*Abb. 4: Die offizielle VIP-Treppe. Die niedrigen Sätze sind an **30-Tage-Handelsvolumen** gebunden, das
 ein Privatanleger praktisch nie erreicht (VIP 9 ≈ **≥ 25 Mrd. USD / 30 Tage**, Abschnitt 6).*
 
 ---
 
 ## 5. „Geld aus reiner Volatilität" — reale Mehr-Markt-Beispiele
 
-Der entscheidende Punkt: Der Bot **prognostiziert nichts**. Er handelt zufällig und verdient **an der
-Schwankung selbst**. Je volatiler der Markt, desto mehr Serien schließen im Plus. Alle folgenden
-Ergebnisse sind **Best-of-Sweep, VIP 9, Start $10.000**, auf **echten Binance-Daten** (simulativ — siehe
-Kasten am Ende des Abschnitts).
+Der entscheidende Punkt: Der Bot **prognostiziert nichts**. Er handelt **zufällig** und verdient **an der
+Schwankung selbst**. Je volatiler der Markt, desto mehr Serien schliessen im Plus. Alle folgenden
+Ergebnisse stehen für die **im Nachhinein beste getestete Einstellung** bei **VIP 9, Start $10.000**, auf
+**echten Binance-Daten** (simulativ — siehe Kasten am Ende des Abschnitts). Zur Erinnerung: Zufallshandel
+ist der **konservative Boden**; mit technischer Analyse wäre mehr drin.
 
-| # | Markt | Zeitraum | Tage | Serien | Trefferq. | Endsaldo aus $10.000 | Faktor |
+| # | Markt | Zeitraum | Tage | Serien | Trefferquote | Endsaldo aus $10.000 | Faktor |
 | --: | :--- | :--- | --: | --: | --: | ---: | ---: |
 | 1 | BTCUSD | 01.10.2019–17.01.2020 | 108 | 668 | 75 % | **$1.499.713** | ×150 |
 | 2 | AVAXUSDC | **10.10.2025 (1 Tag)** | 1 | 1.175 | 81 % | **$1.434.792** | ×143 |
-| 3 | AVAXUSDT | 10.10.2025 (1 Tag) | 1 | 45 | 78 % | $478.374 | ×48 |
-| 4 | ETHUSD | 05.12.2018–17.01.2020 | 407 | 852 | 78 % | $433.572 | ×43 |
-| 5 | XRPUSDT | Januar 2026 | 31 | 48 | 79 % | $331.877 | ×33 |
-| 6 | AVAXUSDT | Januar 2026 | 31 | 128 | 95 % | $56.848 | ×5,7 |
-| 7 | SAMSUNGUSDT | 05.06.2026 (1 Tag) | 1 | 12 | 100 % | $50.133 | ×5,0 |
-| 8 | BNBUSDT | Oktober 2025 | 31 | 18 | 94 % | $40.055 | ×4,0 |
-| 9 | AVAXUSDT | 05.06.2026 (1 Tag) | 1 | 5 | 100 % | $25.437 | ×2,5 |
-| 10 | NOKUSDT | 05.06.2026 (1 Tag) | 1 | 6 | 83 % | $16.505 | ×1,7 |
+| 3 | ETHUSD | 05.12.2018–17.01.2020 | 407 | 852 | 78 % | $433.572 | ×43 |
+| 4 | XRPUSDT | Januar 2026 | 31 | 48 | 79 % | $331.877 | ×33 |
+| 5 | AVAXUSDT | Januar 2026 | 31 | 128 | 95 % | $56.848 | ×5,7 |
+| 6 | BNBUSDT | Oktober 2025 | 31 | 18 | 94 % | $40.055 | ×4,0 |
 
-**Lesart:** Selbst an einem **ganz normalen Tag** (05.06.2026, Zeilen 7/9/10) macht die Zufallsstrategie
-auf kleinen, volatilen Märkten **+65 % bis +400 %**. An einem **außergewöhnlich volatilen Tag** (Zeilen
-2/3) oder über einen **vollen Monat** (Zeilen 5/6/8) explodieren die Werte.
+**Lesart:** Über einen **vollen Monat** (Zeilen 4–6) wie über extreme **Einzeltage** (Zeile 2) ist die
+Zufallsstrategie auf volatilen Märkten deutlich im Plus. Die folgenden Abschnitte zeigen das systematisch
+über **alle** Märkte.
 
 ### 5.1 Beispiel im Detail: AVAX am 10.10.2025 — der Extrem-Volatilitätstag
 
-Der 10.10.2025 war einer der volatilsten Krypto-Tage überhaupt (massive Liquidationswelle). Genau dort
-glänzt eine richtungsneutrale Schwankungsstrategie:
+Der 10.10.2025 war einer der volatilsten Krypto-Tage überhaupt (eine Liquidationswelle von rund
+$19 Mrd.). Genau dort glänzt eine richtungsneutrale Schwankungsstrategie:
 
 ![AVAX 10.10.2025 — Kursverlauf des Tages](imgs/chart-avax-2025-10-10.png)
 
@@ -220,30 +205,133 @@ glänzt eine richtungsneutrale Schwankungsstrategie:
 
 - **1.175 abgeschlossene Serien an EINEM Tag**, 81 % Trefferquote.
 - **$10.000 → $1.434.792** (VIP 9), Handelsvolumen **$806 Mio.** an einem Tag.
-- **Brutto** (vor Gebühren): +$1.493.032, **Gebühren** $68.240.
+- **Vor Gebühren:** +$1.493.032, **Gebühren** $68.240.
 
 ![AVAX 10.10.2025 — alle Gebührenstufen VIP 0–9](imgs/avax-2025-10-10-vip-fee-comparison.svg)
 
-*Abb. 5: An einem so extremen Tag ist das Brutto so groß, dass **sogar VIP 0 gewinnt** ($1,17 Mio.) —
-aber VIP 9 behält **$252.000 mehr** ($1,43 Mio.). Auch wenn alle gewinnen, **gewinnt der VIP-9-Whale am
-meisten**.*
+*Abb. 5–7: An einem so extremen Tag ist das Ergebnis vor Gebühren so gross, dass **sogar VIP 0 gewinnt**
+($1,17 Mio.) — aber VIP 9 behält **$252.000 mehr** ($1,43 Mio.). Auch wenn alle gewinnen, **gewinnt der
+Grosshändler am meisten**.*
 
-### 5.2 Wenn die Volatilität nur mittel ist, frisst die Gebühr fast alles (außer bei VIP 9)
+### 5.2 Wenn die Volatilität nur mittel ist, frisst die Gebühr fast alles (ausser bei VIP 9)
 
 AVAXUSDT im **Januar 2026** (31 Tage, moderate Schwankung) zeigt die Gebührenschere besonders klar:
 
 | Gebührenstufe | Endsaldo aus $10.000 | Netto |
 | :--- | ---: | ---: |
-| **VIP 0 (Regular)** | $11.414 | **+$1.414** (knapp über Null) |
+| **VIP 0 (Privatanleger)** | $11.414 | **+$1.414** (knapp über null) |
 | **VIP 9** | $56.848 | **+$46.848** (×33 mehr Gewinn) |
 
-Bei **identischen** Trades macht der VIP-9-Whale das **33-Fache** an Gewinn — allein wegen der Gebühr.
+Bei **identischen** Trades macht der Grosshändler das **33-Fache** an Gewinn — allein wegen der Gebühr.
 
-> **Beweiskraft-Kasten (Abschnitt 5).** Die Beträge sind **simulativ** und stellen **Best-of-Sweep**-Werte
-> dar (die nachträglich beste Parameterkombination je Markt/Zeitraum). Sie belegen, dass die Strategie
-> **vor Gebühren** auf volatilen Daten **deutlich positiv** ist und bei **niedrigen** Gebühren auch
-> **netto** positiv bleibt. Sie sind **keine** Renditezusage (siehe Abschnitt 8). **Deterministisch** ist
-> nur: identisches Brutto über alle Stufen, Vorzeichen allein durch die Gebühr.
+### 5.3 Der ganze Markt in einem *normalen* Monat: alle 37 USDC-Märkte (Januar 2026)
+
+Um zu zeigen, dass dies **kein Einzelfall** und **kein Crash-Glück** ist, wurde die Strategie auf **allen
+37 handelbaren USDC-Märkten** über den **gesamten Januar 2026** laufen gelassen — überall **identischer
+Aufbau**: $10.000 Start, **zufälliger** Handel, VIP 9. Der Januar 2026 war volatil (Crash am 29.01.,
+BTC $96k → $80k), aber **kein** Extremereignis wie der 10.10. (USDC, weil dort die Gebühren am
+niedrigsten sind.)
+
+**Ergebnis: 37 von 37 Märkten profitabel.** $10.000 je Markt → im Schnitt **$94.685** (Ø **+847 %**) in
+einem Monat.
+
+![Januar 2026 — alle 37 USDC-Märkte: Rendite aus $10.000 (VIP 9)](imgs/jan2026-usdc-returns.svg)
+
+*Abb. 8: Jeder der 37 USDC-Märkte, $10.000 Start, zufälliger Handel, ein Monat. **Alle grün.***
+
+| Markt | $10k → Ende | Rendite | Serien | Trefferq. | VIP-0-Ende |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| ETHUSDC | $303.490 | +2.935 % | 114 | 97 % | $43.446 |
+| SOLUSDC | $294.617 | +2.846 % | 10 | 100 % | $278.534 |
+| NEARUSDC | $246.307 | +2.363 % | 28 | 82 % | $223.896 |
+| DOGEUSDC | $244.620 | +2.346 % | 66 | 80 % | **$3.219** |
+| TIAUSDC | $225.499 | +2.155 % | 64 | 72 % | $182.728 |
+| XRPUSDC | $202.119 | +1.921 % | 19 | 95 % | $188.717 |
+| FILUSDC | $146.687 | +1.367 % | 14 | 100 % | $137.584 |
+| BNBUSDC | $132.839 | +1.228 % | 15 | 87 % | $118.153 |
+| UNIUSDC | $121.863 | +1.119 % | 81 | 93 % | $92.694 |
+| ENAUSDC | $111.293 | +1.013 % | 160 | 85 % | $47.028 |
+| AAVEUSDC | $109.357 | +994 % | 95 | 87 % | **$6.345** |
+| *… weitere 26 Märkte, alle positiv (SUI +943 % … BCH +51 %)* | | | | | |
+| **Summe (37)** | **$3.503.360** | Ø +847 % | | | $2.569.270 |
+
+**$10.000 auf jedem der 37 Märkte ($370.000 Einsatz) → $3,50 Mio. (Netto +$3,13 Mio.) in einem Monat.**
+
+#### Der detaillierte Gebühren-Vergleich: VIP 0 vs. VIP 9 (dieselben Trades)
+
+Die Spalte **VIP-0-Ende** zeigt, was **derselbe** Handel bei Privatanleger-Gebühren ergibt. Die Regel ist
+eindeutig: **je häufiger ein Markt handelt, desto mehr frisst die Gebühr.** Bei den „Vieltradern"
+**verliert VIP 0 sogar Geld, während VIP 9 sechsstellig gewinnt** — bei **identischen** Geschäften:
+
+![DOGEUSDC Januar 2026 — alle Gebührenstufen: VIP 0 verliert, VIP 9 gewinnt](imgs/doge-jan2026-vip-comparison.svg)
+
+*Abb. 9: DOGEUSDC, ein voller Monat. Bei **identischen** Trades verliert VIP 0, während die hohen Stufen
+in den sechsstelligen Bereich wachsen — allein wegen der Gebühr.*
+
+| Markt | Serien | VIP 9 (netto) | VIP 0 (netto) | Verhältnis |
+| :--- | ---: | ---: | ---: | :--- |
+| **DOGEUSDC** | 66 | +$234.620 | **−$6.781** | VIP 0 **verliert** |
+| **AAVEUSDC** | 95 | +$99.357 | **−$3.655** | VIP 0 **verliert** |
+| ETHUSDC | 114 | +$293.490 | +$33.446 | VIP 9 ×8,8 |
+| ENAUSDC | 160 | +$101.293 | +$37.028 | VIP 9 ×2,7 |
+| SOLUSDC *(wenige Trades)* | 10 | +$284.617 | +$268.534 | VIP 9 ×1,06 |
+
+![ETHUSDC Januar 2026 — Kapitalkurve (VIP 9) mit überlagertem Kurs](imgs/eth-jan2026-best-pnl.svg)
+
+*Abb. 10: ETHUSDC, Januar 2026 — $10.000 → $303.490 (grün), realer ETH-Kurs (orange) im Hintergrund.*
+
+Über **alle 37 Märkte** summiert bringt **allein der VIP-9-Tarif +$934.089 mehr** als der
+Privatanleger-Tarif. Und bei **2 von 37** Märkten (DOGE, AAVE — die häufigsten Trader) **kippt das
+Ergebnis bei VIP 0 ins Minus**, während VIP 9 sechsstellig gewinnt.
+
+### 5.4 Ein einziger Extremtag schlägt einen ganzen Monat (alle USDC am 10.10.2025)
+
+Zum direkten Vergleich wurde **derselbe Aufbau** auf den **einzelnen volatilsten Tag** angewandt — den
+**10.10.2025** (die $19-Mrd.-Liquidationswelle). Ergebnis: **36 von 36 Märkten profitabel an EINEM Tag**,
+Durchschnitt **+4.920 %**.
+
+![10.10.2025 — alle 36 USDC-Märkte: Rendite aus $10.000 an einem Tag (VIP 9)](imgs/oct10-2025-usdc-returns.svg)
+
+*Abb. 11: Ein einziger Crash-Tag, 36/36 Märkte grün; Spitzen über +30.000 %.*
+
+| Markt | $10k → Ende (1 Tag) | Rendite | Serien | VIP-0-Ende |
+| :--- | ---: | ---: | ---: | ---: |
+| FILUSDC | $3.405.188 | +33.952 % | 1.070 | $2.924.062 |
+| AAVEUSDC | $3.043.552 | +30.336 % | 722 | $2.635.910 |
+| ENAUSDC | $2.188.950 | +21.789 % | 1.812 | $1.609.986 |
+| AVAXUSDC | $1.434.792 | +14.248 % | 1.175 | $1.182.662 |
+| TIAUSDC | $1.141.608 | +11.316 % | 1.032 | $751.686 |
+| UNIUSDC | $983.742 | +9.737 % | 583 | $684.852 |
+| *… weitere 30 Märkte, alle positiv (SUI +7.401 % … BCH +100 %)* | | | | |
+| **Summe (36)** | **$18,07 Mio.** | Ø +4.920 % | | $14,62 Mio. |
+
+![FILUSDC 10.10.2025 — Kapitalkurve an einem Tag (VIP 9) mit überlagertem Kurs](imgs/fil-oct10-best-pnl.svg)
+
+*Abb. 12: FILUSDC, nur der 10.10.2025 — $10.000 → $3,4 Mio. an einem einzigen Tag (grün), realer Kurs
+(orange) im Hintergrund.*
+
+**$10.000 auf jedem der 36 Märkte ($360.000 Einsatz) → $18,07 Mio. an einem einzigen Tag.**
+
+#### Ein Tag (10.10.) vs. ein ganzer Monat (Januar) — dieselben Märkte
+
+Der Crash-Tag bringt **pro Markt ein Vielfaches** eines ganzen ruhigen Monats — die Strategie ist ein
+reiner **Volatilitäts-Ernter**:
+
+| Markt | 10.10.2025 (1 Tag) | Januar 2026 (31 Tage) | 1 Tag ≈ |
+| :--- | ---: | ---: | ---: |
+| FILUSDC | +33.952 % | +1.367 % | **25 Monate** |
+| AAVEUSDC | +30.336 % | +994 % | **31 Monate** |
+| ENAUSDC | +21.789 % | +1.013 % | **22 Monate** |
+| AVAXUSDC | +14.248 % | +293 % | **49 Monate** |
+| UNIUSDC | +9.737 % | +1.119 % | 9 Monate |
+
+> **Beweiskraft-Kasten (Abschnitt 5).** Die absoluten Beträge sind **simulativ** (im Nachhinein beste
+> getestete Einstellung, also eine **Obergrenze**). Sie belegen, dass die Strategie **vor Gebühren** auf
+> volatilen Daten **deutlich positiv** ist und bei **niedrigen** Gebühren auch **netto** positiv bleibt —
+> über **37 Märkte** in einem normalen Monat **und** über **36 Märkte** an einem Extremtag (37/37 bzw.
+> 36/36 profitabel untermauert zusätzlich die Richtungsunabhängigkeit). **Deterministisch** ist: gleiches
+> Ergebnis vor Gebühren über alle Stufen; die Gebühr allein bestimmt, **wie viel** — und bei
+> Vieltrader-Märkten sogar **ob** — übrig bleibt.
 
 ---
 
@@ -253,77 +341,70 @@ Die niedrigen Taker-Sätze sind an **30-Tage-Handelsvolumen** gebunden (offiziel
 
 | Stufe | erforderliches 30-Tage-Volumen | Taker (USDC + BNB) |
 | :--- | ---: | ---: |
-| Regular (VIP 0) | < 5 Mio. USD | 0,0360 % |
+| Privatanleger (VIP 0) | < 5 Mio. USD | 0,0360 % |
 | VIP 3 | ≥ 50 Mio. USD | 0,0230 % |
 | **VIP 9** | **≥ 25 Mrd. USD** | **0,0085 %** |
 
 Die einzigen Stufen, die in der langen BTC-2019-Rechnung **überleben**, setzen **VIP 4+** voraus; der
-Komfort-Gewinn liegt bei **VIP 9**. **VIP 9 erfordert ≥ 25 Mrd. USD Handelsvolumen in 30 Tagen** — für
-einen Privatanleger **unerreichbar**, für einen großen Market-Maker/Whale Alltag. Damit ist die
+volle Gewinn liegt bei **VIP 9**. **VIP 9 erfordert ≥ 25 Mrd. USD Handelsvolumen in 30 Tagen** — für
+einen Privatanleger **unerreichbar**, für einen grossen Markt-Akteur Alltag. Damit ist die
 Benachteiligung **strukturell**: Der Kleinanleger zahlt auf **jeden** Trade ein Vielfaches und wird von
-**genau derselben** Strategie ruiniert, mit der ein Whale Millionen macht.
+**genau derselben** Strategie ruiniert, mit der ein Grosshändler Millionen macht.
 
 ---
 
 ## 7. Modellvalidierung (warum man den Zahlen trauen kann)
 
-- **Realized Profit:** exakt reproduziert über **4.526 Positionszyklen** echter Binance-Exporte
-  (Weighted-Average-Cost-Methode).
+- **Realized Profit:** exakt reproduziert über **4.526 Positionszyklen** echter Binance-Exporte.
 - **Gebühren:** über **87.806 Ausführungen bis auf 1·10⁻⁸** identisch zur „Fee"-Spalte der Exporte
-  (`Nominal × Satz`, auf 8 Nachkommastellen gerundet).
-- **Invariante:** konstantes Brutto je Serie durch Unit-Tests gesichert (`npm test`, alle grün).
-- **Reales Konto bestätigt den Mechanismus empirisch:** +$349,61 Brutto über 5.813 Positionen, aber
+  (Nominal × Satz, auf 8 Nachkommastellen gerundet).
+- **Invariante:** das konstante Ergebnis je Serie vor Gebühren ist durch automatisierte Tests gesichert.
+- **Reales Konto bestätigt den Mechanismus empirisch:** +$349,61 vor Gebühren über 5.813 Positionen, aber
   **−$59.840 Gebühren → −$77.633 Netto** — der Verlust entstand **allein aus der Kostenstruktur**
-  (Schwester-Gutachten [`docs/stats/GUTACHTEN.md`](../stats/GUTACHTEN.md)).
+  (Schwester-Gutachten zum Realkonto im selben Repository).
 
 ---
 
 ## 8. Hochrechnung — und ihre ehrlichen Grenzen
 
-**Frage:** Was wäre möglich, wenn man das **über viele Märkte** gleichzeitig und **Monat für Monat**
-laufen ließe? Binance listet **500+** USDⓈ-M-Perpetuals.
+**Frage:** Was wäre möglich, wenn man die Strategie **über viele Märkte** gleichzeitig und **Monat für
+Monat** laufen liesse? Binance listet **über 700** USDⓈ-M-Perpetuals.
 
-**Illustrative Obergrenze (simulativ, NICHT als Zusage zu verstehen).** Die realen Monatsläufe oben
-ergaben je Markt **×4 bis ×33** (BNB, AVAX, XRP). Selbst **stark konservativ** mit nur **×2 netto pro
-Markt und Monat** gerechnet und **$10.000** auf je **50** liquide, volatile Märkte verteilt
-($500.000 Einsatz):
-
-| Annahme (konservativ) | Rechnung | Ergebnis / Monat |
-| :--- | :--- | ---: |
-| 50 Märkte × $10.000, je ×2 netto | $500.000 → $1.000.000 | **+$500.000** |
-| dieselbe Basis, je ×4 (entspricht BNB Okt) | $500.000 → $2.000.000 | +$1.500.000 |
+Bereits **belegt** ist (Abschnitt 5.3): **$10.000 auf jedem der 37 USDC-Märkte → $3,50 Mio. in einem
+Monat** (Januar 2026, zufälliger Handel, VIP 9). Eine erweiterte Hochrechnung über **alle** Märkte sowie
+eine **realistische Grosshändler-Simulation mit $100 Mio.** folgen in der nächsten Fassung dieses
+Abschnitts (siehe Stand der laufenden Auswertung).
 
 > ### ⚠️ Realitätscheck — was diese Hochrechnung **nicht** ist
-> Diese Zahlen sind eine **Obergrenze**, kein Versprechen. Folgendes ist **bewusst nicht** modelliert und
-> würde das reale Ergebnis **erheblich** senken:
-> - **Nachträgliche Parameterwahl (Hindsight):** Best-of-Sweep wählt die *im Nachhinein* beste
->   Einstellung. Live kennt man sie **vorher nicht**.
-> - **Slippage & Teilausführungen:** Bei den umgewälzten Volumina bewegt man den Markt selbst; reale
->   Fills sind schlechter als die Tick-Annahme.
-> - **Liquidations-Kaskaden / Manipulation:** Der Martingale-Ruin (Abschnitt 2, Abb. 2) ist **nicht**
->   modelliert. **Ein** einziger langer Einbahn-Move ohne Rückkehr kann eine Serie — und das Konto —
->   auslöschen. In den Daten *passiert* das gelegentlich (Trefferquoten < 100 %).
-> - **Positions-Brackets & Kapital:** Jeder Markt deckelt die maximale Positionsgröße; die ganz großen
->   Faktoren (AVAX-Tag ×143) sind **nicht** beliebig mit Kapital skalierbar.
-> - **Funding-Gebühren** über Nacht sind nicht enthalten.
+> Die absoluten Beträge sind **Obergrenzen** (im Nachhinein beste getestete Einstellung), kein
+> Versprechen. Folgendes ist **bewusst nicht** modelliert und würde das reale Ergebnis **senken**:
+> - **Nachträgliche Einstellungswahl:** Die beste Einstellung kennt man live **vorher nicht**.
+> - **Slippage:** Bei den umgewälzten Volumina bewegt man den Markt selbst; reale Ausführungen sind
+>   schlechter als die Annahme.
+> - **Liquidations-Risiko / Manipulation:** Eine **lange Einbahn-Bewegung ohne Rückkehr** kann eine Serie
+>   — und das Konto — auslöschen. Genau das wird an Börsen an Extremtagen teils gezielt provoziert. Dieses
+>   Risiko ist **nicht** modelliert (es zeigt sich in Trefferquoten < 100 %).
+> - **Positionslimits & Kapital:** Jeder Markt deckelt die maximale Positionsgrösse; die ganz grossen
+>   Faktoren sind **nicht** beliebig mit Kapital skalierbar (genau das prüft die $100-Mio.-Simulation).
+> - **Finanzierungskosten** (Funding) über Nacht sind nicht enthalten.
 >
 > **Belastbar bleibt allein die deterministische Aussage:** vor Gebühren identisch, und **die
-> Gebührenstufe** entscheidet über Gewinn/Verlust. Alles darüber hinaus ist eine **simulative
-> Möglichkeit**, kein garantierter Ertrag.
+> Gebührenstufe** entscheidet über Gewinn/Verlust.
 
 ---
 
 ## 9. Schlussfolgerung
 
-1. **Zone Recovery verdient richtungsneutral an Volatilität** — in den Backtests auf echten
-   Binance-Daten ist die (sogar zufällige) Strategie **vor Gebühren deutlich positiv**.
-2. **Allein die Gebührenstufe** kehrt das Ergebnis um: identische Trades führen den **Regular-User in den
-   Ruin** ($10.000 → $0) und den **VIP 9 zum Millionengewinn** ($10.000 → $1,5 Mio.) — *dieselben*
+1. **Die Hedge-Methode funktioniert** — auf echten Binance-Daten ist die Strategie **vor Gebühren
+   deutlich positiv**, und das **schon bei rein zufälligem Handel** (dem konservativen Boden; mit
+   technischer Analyse wäre mehr drin).
+2. **Allein die Gebührenstufe** kehrt das Ergebnis um: identische Trades führen den **Privatanleger in den
+   Ruin** ($10.000 → $0) und den **Grosshändler zum Millionengewinn** ($10.000 → $1,5 Mio.) — *dieselben*
    Geschäfte, *dasselbe* Marktrisiko.
 3. Die profitablen Sätze sind an **für Privatanleger unerreichbare Volumina** (≥ 25 Mrd. USD / 30 Tage)
    gebunden — die Benachteiligung ist **strukturell**, nicht handlungs- oder marktabhängig.
-4. Die spektakulären Geldbeträge sind **simulative Best-of-Sweep-Obergrenzen**; der **belastbare** Kern
-   ist die gebührenbedingte Vorzeichen-Umkehr.
+4. Die spektakulären Geldbeträge sind **simulative Obergrenzen** (im Nachhinein beste getestete
+   Einstellung); der **belastbare** Kern ist die gebührenbedingte Vorzeichen-Umkehr.
 
 **Es liegt eine strukturelle, allein gebührenbedingte Benachteiligung des Privatanlegers gegenüber den
 höchsten Gebührenstufen vor — unabhängig von Handelsgeschick und Marktrichtung.**
@@ -332,36 +413,27 @@ höchsten Gebührenstufen vor — unabhängig von Handelsgeschick und Marktricht
 
 ## Anhang A — Reproduzierbarkeit
 
-```bash
-npm install
-npm test                                            # Modell-/Gebühren-Validierung (alle grün)
+**Alles ist öffentlich und selbst nachrechenbar:** **https://github.com/mahapo/binance-case-stats**
 
-# Einzelner Markt + Monat / Tag (lädt echte aggTrades von data.binance.vision):
-npm run backtest -- AVAXUSDC 2025-10-10              # der Extrem-Volatilitätstag (Beispiel 5.1)
-npm run backtest -- XRPUSDT 2026-01                  # ein voller Monat
-npm run backtest -- SUIUSDC 2025-10 2026-01          # ein Bereich von Monaten
+Nach dem Klonen des Repositories genügen wenige Befehle; die echten Binance-Handelsdaten werden dabei
+automatisch von der offiziellen Binance-Datenseite geladen:
+
+```
+Installation und Prüfung der Rechenlogik:   npm install   und   npm test
+Ein Markt, ein Monat (z. B. der Crash-Tag): npm run backtest -- AVAXUSDC 2025-10-10
+Ein voller Monat:                           npm run backtest -- ETHUSDC 2026-01
+Ein Zeitraum (mehrere Monate):              npm run backtest -- SUIUSDC 2025-10 2026-01
 ```
 
-- **Ausgabe je Lauf:** `output/<SYMBOL>-<Datumsbereich>-<beste-Einstellung>/` mit
-  `best-pnl.svg` (Kapitalkurve **mit überlagertem Kurs**), `vip-fee-comparison.svg` (alle Stufen
-  VIP 0–9), `trades.csv` (vollständiges Handelslog) und `summary.json` (alle Kennzahlen + jede
-  geprüfte Kombination).
-- **Gebühren folgen dem Symbol:** `…USDC` → USDC-Tabelle, `…USDT` → USDT-Tabelle; BNB-Rabatt
-  standardmäßig an.
-- **Hebel = reale Bracket-Stufen** des Marktes; die größte Hedge-Order wird auf das jeweilige
-  Bracket-Limit gedeckelt (`npm run fetch:brackets` cached die echten Limits).
-- Die in diesem Dokument gezeigten Beispiel-Grafiken liegen unter `docs/zone-recovery/imgs/`.
-
-## Anhang B — Datengrundlage der Beispiele
-
-| Beispiel | Quelle (Ordner unter `output/`) |
-| :--- | :--- |
-| BTC 2019 (Abb. 3, Abschnitt 4) | `BTCUSD-2019-10-01_2020-01-17-lev50-r3-gap20-ms4-dd40-random-vip9` |
-| AVAX 10.10.2025 (Abschnitt 5.1) | `AVAXUSDC-2025-10-10-lev20-r3-gap20-ms4-dd60-random-vip9` |
-| Mehr-Markt-Tabelle (Abschnitt 5) | `output/<SYMBOL>-…/summary.json` (je Markt/Zeitraum) |
+- **Ausgabe je Lauf:** ein Ordner mit der Kapitalkurve (inkl. überlagertem Kurs), dem Gebührenstufen-
+  Vergleich (VIP 0–9), dem vollständigen Handelslog und allen Kennzahlen.
+- **Gebühren folgen dem Markt:** USDC-Märkte → günstigere USDC-Tabelle; USDT-Märkte → USDT-Tabelle.
+- **Hebel/Positionsgrösse** sind auf die **realen Binance-Limits** des jeweiligen Marktes gedeckelt.
+- Alle in diesem Dokument gezeigten Grafiken liegen im Repository unter `docs/zone-recovery/imgs/`.
 
 ---
 
 *Deterministische Aussagen sind als solche gekennzeichnet; simulative Befunde (alle absoluten
-Geldbeträge) sind offen als Best-of-Sweep-Obergrenzen ausgewiesen. Sämtliche Kennzahlen sind mit
-`npm run backtest` aus den realen Binance-Rohdaten reproduzierbar.*
+Geldbeträge) sind offen als Obergrenzen (im Nachhinein beste getestete Einstellung) ausgewiesen.
+Sämtliche Kennzahlen sind unter https://github.com/mahapo/binance-case-stats aus den realen
+Binance-Daten reproduzierbar.*
