@@ -67,4 +67,3 @@ lib/
 docs/zone-recovery/runs
 data/**/*.csv
 data/**/*.zip
-output/

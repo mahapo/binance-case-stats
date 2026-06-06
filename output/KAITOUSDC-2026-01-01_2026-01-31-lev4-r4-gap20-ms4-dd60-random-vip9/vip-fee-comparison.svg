@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="560" viewBox="0 0 1100 560" font-family="ui-sans-serif, system-ui, sans-serif">
+  <rect width="1100" height="560" fill="#ffffff"/>
+  <text x="80" y="28" font-size="18" font-weight="700" fill="#111827">Zone Recovery — KAITOUSDC fee-tier comparison (best setting)</text>
+  <text x="80" y="48" font-size="12.5" fill="#6b7280">lev 4 · ratio 4 · gap 20% · maxSteps 4 · maxDD 60% · random  ·  equity per fee tier vip 0..9</text>
+  <text x="80" y="68" font-size="12.5" font-weight="600" fill="#1d4ed8">USDC margin · BNB −10%</text>
+  <line x1="80" y1="508.0" x2="932" y2="508.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="512.0" text-anchor="end" font-size="12" fill="#6b7280">0.00</text><line x1="80" y1="424.0" x2="932" y2="424.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="428.0" text-anchor="end" font-size="12" fill="#6b7280">12280</text><line x1="80" y1="340.0" x2="932" y2="340.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="344.0" text-anchor="end" font-size="12" fill="#6b7280">24561</text><line x1="80" y1="256.0" x2="932" y2="256.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="260.0" text-anchor="end" font-size="12" fill="#6b7280">36841</text><line x1="80" y1="172.0" x2="932" y2="172.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="176.0" text-anchor="end" font-size="12" fill="#6b7280">49122</text><line x1="80" y1="88.0" x2="932" y2="88.0" stroke="#e5e7eb" stroke-width="1"/><text x="70" y="92.0" text-anchor="end" font-size="12" fill="#6b7280">61402</text>
+  <line x1="80" y1="439.6" x2="932" y2="439.6" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.4 184.0,434.2 242.1,371.5 312.8,314.9 479.8,234.8 504.6,263.6 920.8,121.9 925.2,162.6 932.0,213.6" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.4 184.0,434.2 242.1,371.5 312.8,314.9 479.8,234.8 504.6,263.6 920.8,121.9 925.2,162.6 932.0,213.6" fill="none" stroke="#dc2626" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.4 184.0,434.1 242.1,371.4 312.8,314.7 479.8,234.4 504.6,263.2 920.8,121.2 925.2,161.9 932.0,212.8" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.4 184.0,434.1 242.1,371.3 312.8,314.5 479.8,234.1 504.6,262.8 920.8,120.6 925.2,161.3 932.0,212.1" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,434.0 242.1,371.1 312.8,314.2 479.8,233.6 504.6,262.3 920.8,119.8 925.2,160.4 932.0,211.2" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,434.0 242.1,371.1 312.8,314.1 479.8,233.5 504.6,262.3 920.8,119.6 925.2,160.2 932.0,211.0" fill="none" stroke="#0891b2" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,433.9 242.1,371.1 312.8,314.1 479.8,233.5 504.6,262.2 920.8,119.5 925.2,160.1 932.0,210.9" fill="none" stroke="#db2777" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,433.9 242.1,371.0 312.8,314.1 479.8,233.4 504.6,262.1 920.8,119.4 925.2,160.0 932.0,210.7" fill="none" stroke="#65a30d" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,433.9 242.1,371.0 312.8,314.0 479.8,233.4 504.6,262.0 920.8,119.3 925.2,159.9 932.0,210.6" fill="none" stroke="#475569" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <polyline points="80.0,439.6 80.0,411.2 81.6,421.3 184.0,433.9 242.1,371.0 312.8,314.0 479.8,233.3 504.6,262.0 920.8,119.1 925.2,159.7 932.0,210.5" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-linejoin="round" opacity="0.9"/>
+  <line x1="950" y1="94" x2="972" y2="94" stroke="#ea580c" stroke-width="3"/><text x="980" y="98" font-size="12.5" fill="#374151">vip 9  43498</text>
+  <line x1="950" y1="116" x2="972" y2="116" stroke="#475569" stroke-width="3"/><text x="980" y="120" font-size="12.5" fill="#374151">vip 8  43474</text>
+  <line x1="950" y1="138" x2="972" y2="138" stroke="#65a30d" stroke-width="3"/><text x="980" y="142" font-size="12.5" fill="#374151">vip 7  43458</text>
+  <line x1="950" y1="160" x2="972" y2="160" stroke="#db2777" stroke-width="3"/><text x="980" y="164" font-size="12.5" fill="#374151">vip 6  43432</text>
+  <line x1="950" y1="182" x2="972" y2="182" stroke="#0891b2" stroke-width="3"/><text x="980" y="186" font-size="12.5" fill="#374151">vip 5  43416</text>
+  <line x1="950" y1="204" x2="972" y2="204" stroke="#7c3aed" stroke-width="3"/><text x="980" y="208" font-size="12.5" fill="#374151">vip 4  43392</text>
+  <line x1="950" y1="226" x2="972" y2="226" stroke="#d97706" stroke-width="3"/><text x="980" y="230" font-size="12.5" fill="#374151">vip 3  43257</text>
+  <line x1="950" y1="248" x2="972" y2="248" stroke="#16a34a" stroke-width="3"/><text x="980" y="252" font-size="12.5" fill="#374151">vip 2  43163</text>
+  <line x1="950" y1="270" x2="972" y2="270" stroke="#2563eb" stroke-width="3"/><text x="980" y="274" font-size="12.5" fill="#374151">vip 0  43045</text>
+  <line x1="950" y1="292" x2="972" y2="292" stroke="#dc2626" stroke-width="3"/><text x="980" y="296" font-size="12.5" fill="#374151">vip 1  43045</text>
+  <text x="80" y="542" text-anchor="start" font-size="12" fill="#6b7280">2026-01-09</text><text x="932" y="542" text-anchor="end" font-size="12" fill="#6b7280">2026-01-31</text>
+</svg>
