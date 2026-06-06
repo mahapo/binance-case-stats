@@ -368,12 +368,70 @@ Benachteiligung **strukturell**: Der Kleinanleger zahlt auf **jeden** Trade ein 
 ## 8. Hochrechnung — und ihre ehrlichen Grenzen
 
 **Frage:** Was wäre möglich, wenn man die Strategie **über viele Märkte** gleichzeitig und **Monat für
-Monat** laufen liesse? Binance listet **über 700** USDⓈ-M-Perpetuals.
+Monat** laufen liesse? Binance listet **763** USDⓈ-M-Perpetuals.
 
-Bereits **belegt** ist (Abschnitt 5.3): **$10.000 auf jedem der 37 USDC-Märkte → $3,50 Mio. in einem
-Monat** (Januar 2026, zufälliger Handel, VIP 9). Eine erweiterte Hochrechnung über **alle** Märkte sowie
-eine **realistische Grosshändler-Simulation mit $100 Mio.** folgen in der nächsten Fassung dieses
-Abschnitts (siehe Stand der laufenden Auswertung).
+### 8.1 Realistische Grosshändler-Simulation: $100 Mio. Startkapital (Top-15 USDT, Januar 2026)
+
+Bei **$100 Mio. je Markt** ändert sich das Bild grundlegend gegenüber dem Privatanleger: Die realen
+**Positionslimits (Brackets) greifen** — ein Grosshändler kann pro Markt nur eine begrenzte Positions-
+grösse aufbauen. Es kommen daher nur **wenige Serien pro Monat** zustande.
+
+![Januar 2026 — $100-Mio.-Grosshändler, Top-15 USDT: Monatsrendite je Markt](imgs/whale-jan2026-usdt-returns.svg)
+
+*Abb. 13: Bei $100 Mio. je Markt ist die Strategie positions-limit-begrenzt; die Monatsrendite liegt
+zwischen +0,16 % und +18,3 % je Markt.*
+
+| Markt | Netto ($100 Mio.) | Rendite | Serien |
+| :--- | ---: | ---: | ---: |
+| SOLUSDT | +$18.314.850 | +18,31 % | 3 |
+| SUIUSDT | +$6.544.372 | +6,54 % | 4 |
+| BTCUSDT | +$5.420.830 | +5,42 % | 3 |
+| XRPUSDT | +$5.161.136 | +5,16 % | 2 |
+| NEARUSDT | +$3.389.974 | +3,39 % | 2 |
+| ETHUSDT | +$2.425.800 | +2,43 % | 3 |
+| BNBUSDT | +$2.327.102 | +2,33 % | 2 |
+| DOGEUSDT | +$1.808.577 | +1,81 % | 4 |
+| *… weitere 7 Märkte (DOT … TRX), je +0,16 % bis +1,35 %* | | | |
+| **Summe (15)** | **+$49.180.153** | **+3,28 %** (auf $1,5 Mrd.) | |
+
+**Wichtiger Befund — bei Grosshändlern dreht sich die Gebühren-Logik um.** Weil die Brackets das
+Handelsvolumen pro Markt deckeln, entstehen **wenig Gebühren** — der VIP-9-Vorteil schrumpft auf rund
+**$0,44 Mio.** (gegenüber VIP 0), also unter 1 %. Beim Privatanleger ist der Gebührenunterschied
+existenziell (Ruin vs. Gewinn, Abschnitt 5.3); beim Grosshändler ist nicht die Gebühr, sondern die
+**Positionsgrösse** die Grenze.
+
+### 8.2 Hochrechnung auf *alle* Märkte (grobe Spanne, „ca.")
+
+Der limitierende Faktor im Grossen ist die **Bracket-Kapazität**. Summiert man über **alle 763 Märkte**
+die je Markt maximal mögliche Positionsgrösse, ergibt sich eine **harte Obergrenze des einsetzbaren
+Kapitals** von nur etwa:
+
+| Hebel | gesamte einsetzbare Positionsgrösse über alle 763 Märkte |
+| :--- | ---: |
+| bei 25× | **≈ $0,2 Mrd.** |
+| bei 10× | **≈ $1,3 Mrd.** |
+
+Das heisst: Selbst über die **gesamte Börse** kann die Strategie nur **wenige Milliarden** an Notional
+aufnehmen — sie ist **nicht beliebig skalierbar**. Wendet man die gemessenen Monatsrenditen auf diese
+einsetzbare Kapazität an, ergibt sich als **grobe Grössenordnung** (ausdrücklich „ca.", keine Zusage):
+
+| Szenario | grobe Monats-Spanne über alle Märkte (Grosshändler, bracket-begrenzt) |
+| :--- | ---: |
+| **ruhiger Monat** (wie Januar 2026) | ca. **$50–150 Mio.** |
+| **volatiler Monat** (Crash-Phasen wie Okt 2025) | ca. **$0,3–1 Mrd.** |
+
+Zum Vergleich derselbe Markt-Korb im **Privatanleger-Massstab** ($10.000 je Markt): dort binden die
+Brackets nicht, die **prozentuale** Rendite ist riesig (Abschnitt 5.3: Ø +847 % im Januar), die
+**absoluten** Beträge bleiben aber klein — und **nur** bei VIP 9 sicher profitabel.
+
+**Die beiden Regime im Überblick:**
+
+| | Privatanleger ($10k) | Grosshändler ($100 Mio.) |
+| :--- | :--- | :--- |
+| begrenzt durch | **Gebühren** | **Positionslimits** |
+| Rendite (Jan 2026) | Ø **+847 %** / Monat | **+3,3 %** / Monat |
+| Gebührenstufe | **entscheidet über Ruin/Gewinn** | fast egal (wenig Volumen) |
+| skalierbar? | nein (zu wenig Kapital) | nein (Bracket-Decke ≈ $1 Mrd.) |
 
 > ### ⚠️ Realitätscheck — was diese Hochrechnung **nicht** ist
 > Die absoluten Beträge sind **Obergrenzen** (im Nachhinein beste getestete Einstellung), kein

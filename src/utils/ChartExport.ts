@@ -698,4 +698,69 @@ export class ChartExport {
     fs.writeFileSync(filePath, svg);
     return filePath;
   }
+
+  /**
+   * Horizontal bar chart — one row per category. Stays readable with many
+   * categories (no overlapping labels): the label sits to the left of each row
+   * and the value at the end of its bar, so 30–40 bars render cleanly.
+   */
+  static horizontalBarChartSvg(
+    bars: { label: string; value: number; color?: string }[],
+    options: ChartOptions & { valueSuffix?: string } = {}
+  ): string {
+    const rowH = 24;
+    const m = { top: 72, right: 96, bottom: 28, left: 132 };
+    const W = options.width ?? 940;
+    const ph = Math.max(1, bars.length) * rowH;
+    const H = m.top + m.bottom + ph;
+    const pw = W - m.left - m.right;
+
+    const values = bars.map((b) => b.value);
+    let xMax = Math.max(0, maxOf(values));
+    let xMin = Math.min(0, minOf(values));
+    xMax += (xMax - xMin) * 0.12 || 1; // headroom for value labels
+    const x = (v: number) => m.left + ((v - xMin) / (xMax - xMin)) * pw;
+    const x0 = x(0);
+    const suf = esc(options.valueSuffix ?? "");
+    const vlab = (v: number) => (v >= 0 ? "+" : "") + Math.round(v).toLocaleString("de-CH") + suf;
+
+    let rows = "";
+    bars.forEach((b, i) => {
+      const cy = m.top + i * rowH;
+      const barH = rowH * 0.6;
+      const yTop = cy + (rowH - barH) / 2;
+      const color = b.color ?? (b.value >= 0 ? "#16a34a" : "#dc2626");
+      const xv = x(b.value);
+      const left = Math.min(x0, xv);
+      const w = Math.max(Math.abs(xv - x0), 1);
+      const yMid = cy + rowH / 2 + 4;
+      rows +=
+        `<text x="${(m.left - 8).toFixed(1)}" y="${yMid.toFixed(1)}" text-anchor="end" font-size="12" fill="#374151">${esc(b.label)}</text>` +
+        `<rect x="${left.toFixed(1)}" y="${yTop.toFixed(1)}" width="${w.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}" rx="2"/>` +
+        `<text x="${(xv + (b.value >= 0 ? 6 : -6)).toFixed(1)}" y="${yMid.toFixed(1)}" text-anchor="${b.value >= 0 ? "start" : "end"}" font-size="11.5" font-weight="700" fill="#334155">${vlab(b.value)}</text>`;
+    });
+    const axis = `<line x1="${x0.toFixed(1)}" y1="${m.top}" x2="${x0.toFixed(1)}" y2="${(m.top + ph).toFixed(1)}" stroke="#334155" stroke-width="1.2"/>`;
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="ui-sans-serif, system-ui, sans-serif">
+  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <text x="${m.left}" y="32" font-size="16.5" font-weight="700" fill="#111827">${esc(options.title ?? "")}</text>
+  <text x="${m.left}" y="52" font-size="12.5" fill="#6b7280">${esc(options.subtitle ?? "")}</text>
+  ${axis}
+  ${rows}
+</svg>
+`;
+  }
+
+  /** Write a horizontal bar chart SVG to disk. */
+  static writeHorizontalBarChartSvg(
+    bars: { label: string; value: number; color?: string }[],
+    filePath: string,
+    options: ChartOptions & { valueSuffix?: string } = {}
+  ): string {
+    const svg = ChartExport.horizontalBarChartSvg(bars, options);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, svg);
+    return filePath;
+  }
 }

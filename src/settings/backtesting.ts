@@ -37,7 +37,7 @@ export const backtestRanges: ParamRange[] = [
 // maxDrawdownPercent (a fully-lost series costs that % of balance, so the
 // balance never goes negative) and capped by the leverage position bracket.
 export const backtestBase = {
-  startBalance: 10000, // USDT
+  startBalance: 100_000_000, // USDT — whale simulation ($100M)
   lossTakingPolicy: "take-loss" as const,
   vipLevel: 9, // default fee tier for the sweep (compared 0..9 afterwards)
   // Quote/margin asset → fee table. The runner overrides this from the SYMBOL
