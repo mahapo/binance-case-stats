@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { ZoneRecovery, Recovery, FeeSchedule } from "../src";
+import { ZoneRecovery, Recovery, FeeSchedule, LeverageBracket } from "../src";
 
 // ===========================================================================
 // ZoneRecovery — zone geometry & sizing
@@ -410,6 +410,27 @@ describe("Recovery — drawdown sizing & position bracket", () => {
     expect(last.amount).toBeCloseTo(300_000, 2); // notional capped to the bracket
     // And nothing exceeds it.
     for (const o of strat.currentOrders) expect(o.amount).toBeLessThanOrEqual(300_000 + 1e-6);
+  });
+
+  test("a tight per-market bracket (AVAXUSDC) caps the last hedge", () => {
+    // AVAXUSDC's 75× bracket is only $25,000 — far tighter than BTCUSDT's.
+    const bracket = LeverageBracket.forSymbol("AVAXUSDC", {
+      cache: { AVAXUSDC: [{ maxNotional: 25_000, maxLeverage: 75, mmr: 0.0065, maintAmount: 0 }] },
+    });
+    const strat = new Recovery({
+      symbol: "AVAXUSDC",
+      ratio: 2,
+      leverage: 75,
+      gapPercent: 20,
+      maxDrawdownPercent: 40,
+      maxSteps: 8,
+      forceSide: "buy",
+      leverageBracket: bracket,
+    });
+    strat.onSignal(25, 0, 1_000_000); // AVAX ~ $25
+    const last = strat.currentOrders[strat.currentOrders.length - 1];
+    expect(last.amount).toBeCloseTo(25_000, 2); // capped to AVAXUSDC bracket
+    for (const o of strat.currentOrders) expect(o.amount).toBeLessThanOrEqual(25_000 + 1e-6);
   });
 
   test("no affordable size (zero balance) opens no series", () => {

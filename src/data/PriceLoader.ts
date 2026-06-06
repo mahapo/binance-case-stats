@@ -30,6 +30,27 @@ function parseCsvLine(line: string): string[] {
 
 export class PriceLoader {
   /**
+   * Derive the market symbol from a tick CSV filename, e.g.
+   *   AVAXUSDC-aggTrades-2025-10-10.csv → "AVAXUSDC"
+   *   BTCUSDT-trades-2021-04-18.csv     → "BTCUSDT"
+   *   Gemini_BTCUSD_tradeprints_2019.csv → "BTCUSD"
+   * Returns "" if no symbol-like token is found.
+   */
+  static symbolFromPath(csvPath: string): string {
+    const base = csvPath.split("/").pop()!.replace(/\.[^.]+$/, "");
+    const re = /^[A-Z0-9]{3,}USD[TC]?$/;
+    // Binance: leading token before the first "-".
+    const head = base.split("-")[0].toUpperCase();
+    if (re.test(head)) return head;
+    // Gemini / underscore-delimited: pick the first symbol-like token.
+    for (const tok of base.split("_")) {
+      const up = tok.toUpperCase();
+      if (re.test(up)) return up;
+    }
+    return "";
+  }
+
+  /**
    * Load ticks from a CSV. Auto-detects the columns, so it handles:
    *   - the Binance official trades export with a header
    *     (`id,price,qty,quote_qty,time,is_buyer_maker`, `time` in ms),

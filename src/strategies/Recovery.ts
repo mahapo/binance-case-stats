@@ -177,9 +177,13 @@ export class Recovery extends StrategyBase {
       : side === "buy"
         ? price - gap
         : price + gap;
-    const maxPositionValue =
-      this.options.leverageBracket.maxPositionValue(leverage);
-    const maxBaseQty = maxPositionValue / (Math.pow(M, lastIdx) * entryLast);
+    // The last hedge's base qty must fit the market's position limit (the tighter
+    // of the per-leverage notional bracket and the public max-position-size).
+    const maxLastHedgeQty = this.options.leverageBracket.maxBaseQty(
+      entryLast,
+      leverage
+    );
+    const maxBaseQty = maxLastHedgeQty / Math.pow(M, lastIdx);
 
     return Math.max(0, Math.min(baseQty, maxBaseQty));
   }

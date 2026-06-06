@@ -65,4 +65,6 @@ typings/
 lib/
 
 docs/zone-recovery/runs
-data
+data/**/*.csv
+data/**/*.zip
+output/

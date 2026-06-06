@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Backtester, BacktestOptions, BacktestResult } from "./runners";
 import { PriceLoader, Tick } from "./data/PriceLoader";
-import { FeeSchedule, QuoteAsset } from "./models";
+import { FeeSchedule, QuoteAsset, LeverageBracket } from "./models";
 import { ChartExport, EquityCurve } from "./utils";
 
 // =============================================================================
@@ -90,8 +90,17 @@ function tradedVolume(r: BacktestResult): number {
   return v;
 }
 
+// Market + its real per-market leverage brackets, set in main() from the CSV.
+let market: { symbol: string; leverageBracket: LeverageBracket } = {
+  symbol: "BTCUSDT",
+  leverageBracket: LeverageBracket.forSymbol("BTCUSDT"),
+};
+
 function run(ticks: Tick[], over: Partial<BacktestOptions>): BacktestResult {
-  return new Backtester().run({ ...CANON, ...over } as BacktestOptions, ticks);
+  return new Backtester().run(
+    { ...CANON, ...market, ...over } as BacktestOptions,
+    ticks
+  );
 }
 
 function main() {
@@ -101,9 +110,12 @@ function main() {
   // Default: the WHOLE file. Pass a number to cap ticks (useful for huge files).
   const limit = process.argv[3] ? parseInt(process.argv[3], 10) : Infinity;
 
+  const symbol = PriceLoader.symbolFromPath(csv) || "BTCUSDT";
+  market = { symbol, leverageBracket: LeverageBracket.forSymbol(symbol) };
+
   console.log(`Loading ticks from ${csv} (limit ${limit}) …`);
   const ticks = PriceLoader.loadTicks(csv, limit);
-  console.log(`Loaded ${ticks.length} ticks.`);
+  console.log(`Loaded ${ticks.length} ticks. Market: ${symbol}.`);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const runDir = path.resolve(process.cwd(), "docs/zone-recovery/runs", stamp);
@@ -177,7 +189,7 @@ function main() {
   const compRows = [];
   for (let vip = 0; vip <= 9; vip++) {
     const r = new Backtester().run(
-      { ...COMPOUND, vipLevel: vip, quote: "USDC", bnbDiscount: true, seed: COMPOUND_SEED } as BacktestOptions,
+      { ...COMPOUND, ...market, vipLevel: vip, quote: "USDC", bnbDiscount: true, seed: COMPOUND_SEED } as BacktestOptions,
       ticks
     );
     compRows.push({ vip, r });
@@ -239,7 +251,7 @@ function main() {
   // ---------------------------------------------------------------------------
   const canonR = new Backtester().run(
     {
-      symbol: "BTC/USDT",
+      ...market,
       leverage: 75,
       ratio: 2,
       gapPercent: 70,
@@ -317,7 +329,7 @@ function main() {
   // ---------------------------------------------------------------------------
   const summary = {
     generatedAt: new Date().toISOString(),
-    data: { csv: path.basename(csv), ticks: ticks.length },
+    data: { csv: path.basename(csv), ticks: ticks.length, symbol },
     canonical: CANON,
     seed: SEED0,
     grossProfit: gross,

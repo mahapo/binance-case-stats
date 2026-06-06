@@ -90,3 +90,20 @@ describe("PriceLoader.loadTicks", () => {
     );
   });
 });
+
+describe("PriceLoader.symbolFromPath", () => {
+  test("Binance aggTrades / trades filenames", () => {
+    expect(PriceLoader.symbolFromPath("data/Others/AVAXUSDC-aggTrades-2025-10-10.csv")).toBe("AVAXUSDC");
+    expect(PriceLoader.symbolFromPath("/x/BTCUSDT-trades-2021-04-18.csv")).toBe("BTCUSDT");
+    expect(PriceLoader.symbolFromPath("BTCUSDT-aggTrades-2026-05.csv")).toBe("BTCUSDT");
+  });
+
+  test("Gemini trade-prints filenames", () => {
+    expect(PriceLoader.symbolFromPath("data/BTC/Gemini_BTCUSD_tradeprints_Q4_2019.csv")).toBe("BTCUSD");
+    expect(PriceLoader.symbolFromPath("data/ETH/Gemini_ETHUSD_tradeprints_2019.csv")).toBe("ETHUSD");
+  });
+
+  test("returns empty string when no symbol token is present", () => {
+    expect(PriceLoader.symbolFromPath("data/BTC/2020.csv")).toBe("");
+  });
+});

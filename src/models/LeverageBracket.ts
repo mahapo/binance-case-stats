@@ -6,8 +6,14 @@
 // permits that leverage. e.g. 150× → ≤ 300,000 USDT; 100× → ≤ 800,000; 75× → ≤
 // 3,000,000; 50× → ≤ 12,000,000.
 //
-// Source: https://www.binance.com/en/futures/trading-parameters (BTCUSDT Perp).
+// Brackets are PER MARKET (BTCUSDT ≠ AVAXUSDC). Use `LeverageBracket.forSymbol()`
+// to load a market's real brackets from the ccxt-fetched cache
+// (`data/brackets/binance-usdm.json`, populated by `npm run fetch:brackets`).
+// The BTCUSDT table below is a built-in fallback.
 //   Maintenance Margin = Position Value × MMR − Maintenance Amount.
+
+import * as fs from "fs";
+import * as path from "path";
 
 export interface BracketTier {
   /** Upper bound of the position bracket (Position Value in USDT). */
@@ -17,6 +23,12 @@ export interface BracketTier {
   mmr: number;
   /** Maintenance Amount (USDT) — the bracket's cumulative deduction. */
   maintAmount: number;
+}
+
+/** Public per-market size limits from ccxt `loadMarkets()` (base asset). */
+export interface SymbolLimits {
+  maxPositionQty?: number; // limits.amount.max — max position size
+  maxOrderQty?: number; // limits.market.max — max single market order
 }
 
 // BTCUSDT Perpetual brackets, ascending by notional.
@@ -35,8 +47,105 @@ export const BTCUSDT_BRACKETS: BracketTier[] = [
   { maxNotional: 1_800_000_000, maxLeverage: 1, mmr: 0.5, maintAmount: 421_482_000 },
 ];
 
+export type BracketCache = Record<string, BracketTier[]>;
+interface CacheEnvelope {
+  brackets: BracketCache;
+  limits: Record<string, SymbolLimits>;
+}
+
+// Default on-disk cache written by `npm run fetch:brackets`.
+const CACHE_FILE = path.resolve(process.cwd(), "data/brackets/binance-usdm.json");
+let _cache: CacheEnvelope | null = null;
+
+function loadCache(): CacheEnvelope {
+  if (_cache) return _cache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(CACHE_FILE, "utf-8"));
+    _cache = {
+      brackets: (raw.brackets ?? raw ?? {}) as BracketCache,
+      limits: (raw.limits ?? {}) as Record<string, SymbolLimits>,
+    };
+  } catch {
+    _cache = { brackets: {}, limits: {} };
+  }
+  return _cache;
+}
+
+/** ccxt/exchange symbol → compact upper, e.g. "AVAX/USDC:USDC" → "AVAXUSDC". */
+const compact = (s: string): string =>
+  s.split(":")[0].replace("/", "").toUpperCase();
+
+const candidatesFor = (norm: string): string[] => {
+  const c = [norm];
+  if (norm.endsWith("USDC")) c.push(norm.slice(0, -4) + "USDT");
+  if (norm.endsWith("USDT")) c.push(norm.slice(0, -4) + "USDC");
+  if (norm.endsWith("USD")) c.push(norm + "T", norm + "C");
+  return c;
+};
+
 export class LeverageBracket {
-  constructor(readonly tiers: BracketTier[] = BTCUSDT_BRACKETS) {}
+  constructor(
+    readonly tiers: BracketTier[] = BTCUSDT_BRACKETS,
+    readonly limits: SymbolLimits = {}
+  ) {}
+
+  /**
+   * Per-market position limits for a symbol, from the ccxt-fetched cache:
+   * per-leverage notional brackets (private endpoint) and/or the public position
+   * size limit (`maxPositionQty`). Falls back USDC↔USDT and …USD→…USDT/…USDC (so
+   * Gemini spot files map to a USDⓈ-M market), then to the built-in BTCUSDT table
+   * for BTC, then to an uncapped tier. Pass `{ cache, limits }` to inject (tests).
+   */
+  static forSymbol(
+    symbol: string,
+    opts: {
+      cache?: BracketCache;
+      limits?: Record<string, SymbolLimits>;
+      warnOnFallback?: boolean;
+    } = {}
+  ): LeverageBracket {
+    const env: CacheEnvelope =
+      opts.cache || opts.limits
+        ? { brackets: opts.cache ?? {}, limits: opts.limits ?? {} }
+        : loadCache();
+    const candidates = candidatesFor(compact(symbol));
+
+    let tiers: BracketTier[] | undefined;
+    let lim: SymbolLimits | undefined;
+    for (const c of candidates) if (env.brackets[c]?.length) { tiers = env.brackets[c]; break; }
+    for (const c of candidates) if (env.limits[c]) { lim = env.limits[c]; break; }
+
+    if (!tiers) {
+      if (compact(symbol).startsWith("BTC")) tiers = BTCUSDT_BRACKETS;
+      else {
+        tiers = [{ maxNotional: Infinity, maxLeverage: Infinity, mmr: 0, maintAmount: 0 }];
+        // Only warn if we have NO real limit at all (no brackets and no qty cap).
+        if (!lim?.maxPositionQty && opts.warnOnFallback !== false) {
+          console.warn(
+            `LeverageBracket: no brackets/limits for "${symbol}" — uncapped (run npm run fetch:brackets)`
+          );
+        }
+      }
+    }
+    return new LeverageBracket(tiers, lim ?? {});
+  }
+
+  /** Reset the memoized on-disk cache (tests). */
+  static _resetCache(): void {
+    _cache = null;
+  }
+
+  /**
+   * Maximum base-asset quantity for a single position at this leverage/price —
+   * the tighter of the per-leverage notional bracket and the public position
+   * size limit. (Used to cap the largest hedge of a recovery series.)
+   */
+  maxBaseQty(price: number, leverage: number): number {
+    const byNotional =
+      price > 0 ? this.maxPositionValue(leverage) / price : Infinity;
+    const byQty = this.limits.maxPositionQty ?? Infinity;
+    return Math.min(byNotional, byQty);
+  }
 
   /**
    * Maximum position value (notional, USDT) tradable at a given leverage — the
