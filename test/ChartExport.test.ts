@@ -34,6 +34,21 @@ describe("ChartExport — equity/PnL SVG", () => {
     expect(ChartExport.equitySvg(series(800))).toContain("#dc2626"); // red
   });
 
+  test("overlays a price series on a secondary axis when provided", () => {
+    const price = Array.from({ length: 50 }, (_, i) => ({
+      time: 1_700_000_000_000 + i * 10_000,
+      price: 100 + i,
+    }));
+    const svg = ChartExport.equitySvg(series(1200), { priceSeries: price });
+    expect((svg.match(/<polyline/g) || []).length).toBe(2); // equity + price
+    expect(svg).toContain("#d97706"); // amber price line + right axis
+    expect(svg).toContain(">price</text>");
+    expect(svg).toContain(">equity</text>");
+    expect(svg).not.toMatch(/NaN|Infinity/);
+    // No overlay → still a single polyline.
+    expect((ChartExport.equitySvg(series(1200)).match(/<polyline/g) || []).length).toBe(1);
+  });
+
   test("handles an empty equity curve (flat at start balance)", () => {
     const svg = ChartExport.equitySvg({
       startBalance: 1000,

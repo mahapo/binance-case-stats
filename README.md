@@ -15,22 +15,26 @@ against real account exports.
 npm install                       # or: bun install
 npm test                          # math core, strategy, charts, loaders
 
-npm run backtest -- AVAXUSDT 2026-05         # auto-download a market+month, sweep, report best
+npm run backtest -- AVAXUSDT 2026-05               # one month: auto-download, sweep, report best
+npm run backtest -- SUIUSDC 2025-10 2026-01        # a range of months (downloaded + concatenated)
+npm run backtest -- SUIUSDC 2025-10-10 2025-10-12  # a range of days
 ```
 
 ## Scripts
 
 | Command | What it does |
 | :--- | :--- |
-| `npm run download -- <SYMBOL> <PERIOD>` | Download + unzip Binance aggTrades, then **slim to `price,transact_time`** and delete the zip. `PERIOD` = `YYYY-MM` (monthly) or `YYYY-MM-DD` (daily), e.g. `AVAXUSDT 2026-05`. Cached in `data/aggTrades/`; re-runs skip. |
-| `npm run backtest -- <SYMBOL> <PERIOD> [limit]` | Sweep the parameter matrix (`src/settings/backtesting.ts`) over a market, auto-downloading the data. Also accepts a local `<csv-path> [limit]`. |
+| `npm run download -- <SYMBOL> <PERIOD> [END]` | Download + unzip Binance aggTrades, then **slim to `price,transact_time`** and delete the zip. `PERIOD` = `YYYY-MM` (monthly) or `YYYY-MM-DD` (daily). Add an `END` of the same granularity to fetch an **inclusive range** (e.g. `SUIUSDC 2025-10 2026-01` or `SUIUSDC 2025-10-10 2025-10-12`). Cached in `data/aggTrades/`; re-runs skip. |
+| `npm run backtest -- <SYMBOL> <PERIOD> [END] [limit]` | Sweep the parameter matrix (`src/settings/backtesting.ts`) over a market, auto-downloading the data. A `PERIOD` range (`<START> <END>`, same granularity) downloads and concatenates every month/day in order. Also accepts a local `<csv-path> [limit]`. |
 | `npm run report -- [csv] [limit]` | Generate the zone-recovery **Gutachten** charts + numbers → `docs/zone-recovery/`. |
 | `npm run fetch:brackets` | Cache real per-market leverage/position brackets from ccxt → `data/brackets/binance-usdm.json` (needs API keys in `.env`; public size limits work without keys). |
 
 The backtest finds the best setting by net PnL, replays it across fee tiers VIP 0–9, and writes
-artifacts to **`output/<SYMBOL>-<bestId>/`**:
+artifacts to **`output/<SYMBOL>-<dateRange>-<bestId>/`** (the folder id carries the market, the
+data's date range, and the winning params):
 
-- `best-pnl.svg` — equity curve of the best run (title shows the market)
+- `best-pnl.svg` — equity curve of the best run, with the **market price overlaid** on a secondary
+  axis (title shows the market)
 - `vip-fee-comparison.svg` — equity per fee tier (VIP 0–9)
 - `trades.csv` — full trade log (one row per order)
 - `summary.json` — market, bracket, best stats (incl. trade volume + per day), VIP comparison, all swept results
@@ -51,8 +55,17 @@ zone line; sizes grow geometrically until a take-profit closes the whole series.
 
 ## Configuration
 
-- **Parameters swept**: edit `src/settings/backtesting.ts` (leverage, ratio, gapPercent, maxSteps,
+- **Parameters swept**: edit `src/settings/backtesting.ts` (ratio, gapPercent, maxSteps,
   maxDrawdownPercent, side `0=buy 1=sell 2=random`). `vipLevel` is fixed for the sweep, then compared 0–9.
+- **Leverage is per-market, not a fixed range**: the runner sweeps each market's **real bracket
+  leverage rungs** (from the cache), e.g. REDUSDT → `50,25,20,10,5,4,3,2,1×`, BTCUSDC →
+  `125,100,50,…`, ETHUSDT → `50,25,10,…`. So only Binance-allowed leverages run, each with its own
+  position cap. The "best" is only ever a setting that actually traded.
+- **Fees follow the symbol**: a `…USDC` market is charged the **USDC** fee table (0% maker, lower
+  taker), a `…USDT` market the **USDT** table — auto-detected from the symbol. The **BNB −10%**
+  discount is on by default (`backtestBase.bnbDiscount`). The chosen tier (and the other quote's
+  rate, for contrast) is printed, drawn on the charts, and written to `summary.json`. USDC is cheaper
+  than USDT at every tier — which, since the trades are identical, is the whole point.
 - **API keys** (for `fetch:brackets`): `.env` with `API_KEY` / `API_SECRET` (mainnet futures,
   read-only is enough). `.env` is gitignored.
 

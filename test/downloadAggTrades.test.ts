@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { aggTradesUrl, isSymbol, isPeriod } from "../src/data/downloadAggTrades";
+import {
+  aggTradesUrl,
+  isSymbol,
+  isPeriod,
+  expandPeriods,
+} from "../src/data/downloadAggTrades";
 
 describe("aggTrades downloader (URL + arg detection)", () => {
   test("monthly URL", () => {
@@ -27,5 +32,36 @@ describe("aggTrades downloader (URL + arg detection)", () => {
     expect(isSymbol("data/x.csv")).toBe(false);
     expect(isSymbol("200000")).toBe(false);
     expect(isSymbol("BTC/USDT")).toBe(false);
+  });
+});
+
+describe("expandPeriods (range → ordered periods)", () => {
+  test("single period (start === end)", () => {
+    expect(expandPeriods("2025-10", "2025-10")).toEqual(["2025-10"]);
+    expect(expandPeriods("2025-10-10", "2025-10-10")).toEqual(["2025-10-10"]);
+  });
+
+  test("month range, crossing a year", () => {
+    expect(expandPeriods("2025-10", "2026-01")).toEqual([
+      "2025-10",
+      "2025-11",
+      "2025-12",
+      "2026-01",
+    ]);
+  });
+
+  test("day range, crossing a month", () => {
+    expect(expandPeriods("2025-10-30", "2025-11-02")).toEqual([
+      "2025-10-30",
+      "2025-10-31",
+      "2025-11-01",
+      "2025-11-02",
+    ]);
+  });
+
+  test("rejects mixed granularity and reversed ranges", () => {
+    expect(() => expandPeriods("2025-10", "2025-10-12")).toThrow();
+    expect(() => expandPeriods("2026-01", "2025-10")).toThrow();
+    expect(() => expandPeriods("2025-10-12", "2025-10-10")).toThrow();
   });
 });

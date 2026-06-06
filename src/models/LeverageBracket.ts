@@ -158,6 +158,32 @@ export class LeverageBracket {
     return max;
   }
 
+  /**
+   * Highest leverage the market allows (max over all brackets). Above this no
+   * position can open (`maxPositionValue` → 0). `Infinity` for the uncapped
+   * fallback (unknown symbols).
+   */
+  maxLeverage(): number {
+    let max = 0;
+    for (const t of this.tiers) if (t.maxLeverage > max) max = t.maxLeverage;
+    return max;
+  }
+
+  /**
+   * Distinct leverage rungs to sweep for this market — the Max Leverage of each
+   * bracket tier, descending (e.g. REDUSDT → 50, 25, 20, 10, 5, 4, 3, 2, 1).
+   * These are exactly the leverages Binance permits, each with its own position
+   * cap. Falls back to a sensible default when the bracket is uncapped (an
+   * unknown symbol with no cached brackets).
+   */
+  leverageRungs(): number[] {
+    const finite = this.tiers
+      .map((t) => t.maxLeverage)
+      .filter((l) => Number.isFinite(l) && l > 0);
+    const uniq = Array.from(new Set(finite)).sort((a, b) => b - a);
+    return uniq.length ? uniq : [75, 50, 25, 10, 5]; // uncapped fallback
+  }
+
   /** The bracket a given position value falls into. */
   tierFor(positionValue: number): BracketTier {
     for (const t of this.tiers) if (positionValue <= t.maxNotional) return t;

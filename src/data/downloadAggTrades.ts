@@ -10,10 +10,12 @@ import { pipeline } from "stream/promises";
 // only columns the backtester needs — `price,transact_time` — caching it under
 // data/aggTrades/. Re-runs skip if the slimmed CSV is already present.
 //
-//   npm run download -- <SYMBOL> <PERIOD>
+//   npm run download -- <SYMBOL> <PERIOD> [END_PERIOD]
 //     PERIOD = YYYY-MM (monthly)  or  YYYY-MM-DD (daily)
 //   npm run download -- AVAXUSDT 2026-05
 //   npm run download -- AVAXUSDT 2025-10-12
+//   npm run download -- SUIUSDC 2025-10 2026-01      (range of months)
+//   npm run download -- SUIUSDC 2025-10-10 2025-10-12 (range of days)
 
 export const DOWNLOAD_DIR = path.resolve(process.cwd(), "data/aggTrades");
 
@@ -131,35 +133,106 @@ export async function downloadAggTrades(
 }
 
 /**
- * Resolve a runner's CLI args into a tick CSV + tick limit. Supports:
- *   <SYMBOL> <PERIOD> [limit]   → auto-download (e.g. AVAXUSDT 2026-05)
- *   <csv-path> [limit]          → use a local file
- *   (none)                      → defaultCsv
+ * Expand an inclusive period range into its ordered list of periods. Both ends
+ * must share a granularity — months (YYYY-MM) or days (YYYY-MM-DD).
+ *   expandPeriods("2025-10","2026-01")   → ["2025-10","2025-11","2025-12","2026-01"]
+ *   expandPeriods("2025-10-10","2025-10-12") → ["2025-10-10","2025-10-11","2025-10-12"]
+ */
+export function expandPeriods(start: string, end: string): string[] {
+  if (start === end) return [start];
+  const months = MONTH_RE.test(start) && MONTH_RE.test(end);
+  const days = DAY_RE.test(start) && DAY_RE.test(end);
+  if (!months && !days) {
+    throw new Error(
+      `period range must be two months (YYYY-MM) or two days (YYYY-MM-DD): got "${start}" … "${end}"`
+    );
+  }
+  const out: string[] = [];
+  if (months) {
+    let [y, m] = start.split("-").map(Number);
+    const [ey, em] = end.split("-").map(Number);
+    if (y > ey || (y === ey && m > em)) {
+      throw new Error(`period range start "${start}" is after end "${end}"`);
+    }
+    while (y < ey || (y === ey && m <= em)) {
+      out.push(`${y}-${String(m).padStart(2, "0")}`);
+      if (++m > 12) { m = 1; y++; }
+    }
+  } else {
+    const s = new Date(`${start}T00:00:00Z`);
+    const e = new Date(`${end}T00:00:00Z`);
+    if (s.getTime() > e.getTime()) {
+      throw new Error(`period range start "${start}" is after end "${end}"`);
+    }
+    for (let d = s; d.getTime() <= e.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+      out.push(d.toISOString().slice(0, 10));
+    }
+  }
+  return out;
+}
+
+/** Download (cached, skipping present) every period in an inclusive range; ordered CSV paths. */
+export async function downloadAggTradesRange(
+  symbol: string,
+  start: string,
+  end: string = start,
+  opts: { dir?: string } = {}
+): Promise<string[]> {
+  const periods = expandPeriods(start, end);
+  const csvs: string[] = [];
+  for (const p of periods) csvs.push(await downloadAggTrades(symbol, p, opts));
+  return csvs;
+}
+
+/**
+ * Resolve a runner's CLI args into ordered tick CSV(s) + a tick limit. Supports:
+ *   <SYMBOL> <PERIOD> [limit]           → one month/day (e.g. AVAXUSDT 2026-05)
+ *   <SYMBOL> <START> <END> [limit]      → inclusive range, same granularity
+ *                                         (e.g. SUIUSDC 2025-10 2026-01)
+ *   <csv-path> [limit]                  → a local file
+ *   (none)                              → defaultCsv
  */
 export async function resolveData(
   argv: string[],
   defaults: { defaultCsv: string; defaultLimit: number }
-): Promise<{ csv: string; limit: number }> {
+): Promise<{ csvs: string[]; limit: number; label: string }> {
   const a = argv[2];
   const b = argv[3];
   const c = argv[4];
+  const d = argv[5];
   if (a && b && isSymbol(a) && isPeriod(b)) {
-    const csv = await downloadAggTrades(a, b);
-    return { csv, limit: c ? parseInt(c, 10) : defaults.defaultLimit };
+    // argv[4] is an end period when it looks like one (range), else the limit.
+    const hasEnd = !!c && isPeriod(c);
+    const start = b;
+    const end = hasEnd ? c : b;
+    const limitArg = hasEnd ? d : c;
+    const csvs = await downloadAggTradesRange(a, start, end);
+    const sym = a.toUpperCase();
+    const label = start === end ? `${sym} ${start}` : `${sym} ${start}…${end}`;
+    return {
+      csvs,
+      limit: limitArg ? parseInt(limitArg, 10) : defaults.defaultLimit,
+      label,
+    };
   }
+  const csv = a || defaults.defaultCsv;
   return {
-    csv: a || defaults.defaultCsv,
+    csvs: [csv],
     limit: b ? parseInt(b, 10) : defaults.defaultLimit,
+    label: path.basename(csv),
   };
 }
 
 async function main(): Promise<void> {
-  const [, , symbol, period] = process.argv;
-  if (!symbol || !period || !isSymbol(symbol) || !isPeriod(period)) {
-    console.error("Usage: npm run download -- <SYMBOL> <YYYY-MM | YYYY-MM-DD>");
+  const [, , symbol, start, end] = process.argv;
+  if (!symbol || !start || !isSymbol(symbol) || !isPeriod(start) || (end && !isPeriod(end))) {
+    console.error(
+      "Usage: npm run download -- <SYMBOL> <YYYY-MM | YYYY-MM-DD> [END_PERIOD]"
+    );
     process.exit(1);
   }
-  await downloadAggTrades(symbol, period);
+  const csvs = await downloadAggTradesRange(symbol, start, end || start);
+  console.log(`Ready ${csvs.length} file(s).`);
 }
 
 if (require.main === module) {

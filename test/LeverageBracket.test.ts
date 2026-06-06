@@ -19,6 +19,15 @@ describe("LeverageBracket — BTCUSDT position limits", () => {
     expect(lb.maxPositionValue(200)).toBe(0);
   });
 
+  test("maxLeverage is the highest leverage the market allows", () => {
+    expect(lb.maxLeverage()).toBe(150); // BTCUSDT top tier
+    // A cache-backed market that tops out lower (e.g. ETH-like 50×).
+    const cache = { ETHUSDT: [{ maxNotional: 50_000, maxLeverage: 50, mmr: 0.01, maintAmount: 0 }] };
+    expect(LeverageBracket.forSymbol("ETHUSDT", { cache }).maxLeverage()).toBe(50);
+    // Unknown symbol → uncapped fallback.
+    expect(LeverageBracket.forSymbol("ZZZUSDT", { cache: {}, warnOnFallback: false }).maxLeverage()).toBe(Infinity);
+  });
+
   test("tierFor / maintenance margin follow the brackets", () => {
     expect(lb.tierFor(500_000).maxLeverage).toBe(100); // tier 2
     expect(lb.maintenanceMarginRate(500_000)).toBeCloseTo(0.005, 9);

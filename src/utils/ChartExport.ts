@@ -21,10 +21,14 @@ export interface ChartOptions {
   height?: number;
   title?: string;
   subtitle?: string;
+  /** Right-aligned highlight on the subtitle line (e.g. the fee config). */
+  note?: string;
   /** Override the auto legend (e.g. when overlaying many same-group curves). */
   legendItems?: { label: string; color: string }[];
   /** Use a logarithmic balance axis (for $0 → millions divergence). */
   logScale?: boolean;
+  /** Optional price series overlaid on a secondary (right) axis. */
+  priceSeries?: PricePoint[];
 }
 
 export interface EquityCurve {
@@ -110,7 +114,11 @@ export class ChartExport {
   static equitySvg(series: EquitySeries, options: ChartOptions = {}): string {
     const W = options.width ?? 1000;
     const H = options.height ?? 520;
-    const m = { top: 64, right: 32, bottom: 52, left: 78 };
+    // Optional price overlay → reserve a right margin for its secondary axis.
+    const priceAll = options.priceSeries ?? [];
+    const hasPrice = priceAll.length > 0;
+    // A fee note gets its own line under the subtitle → taller header.
+    const m = { top: options.note ? 88 : 64, right: hasPrice ? 66 : 32, bottom: 52, left: 78 };
     const pw = W - m.left - m.right;
     const ph = H - m.top - m.bottom;
 
@@ -122,8 +130,10 @@ export class ChartExport {
 
     const times = pts.map((p) => p.time);
     const bals = pts.map((p) => p.balance);
-    const tMin = minOf(times);
-    const tMax = maxOf(times);
+    // Share the x-axis across equity + price so they line up on the same window.
+    const ptimes = priceAll.map((p) => p.time);
+    const tMin = Math.min(minOf(times), hasPrice ? minOf(ptimes) : Infinity);
+    const tMax = Math.max(maxOf(times), hasPrice ? maxOf(ptimes) : -Infinity);
     // Balances are never negative — anchor the axis at 0 so the magnitude is honest.
     let yMin = 0;
     let yMax = Math.max(series.startBalance, maxOf(bals));
@@ -168,9 +178,46 @@ export class ChartExport {
       .map((p) => `${x(p.time).toFixed(1)},${y(p.balance).toFixed(1)}`)
       .join(" ");
     const area =
-      `${m.left},${(m.top + ph).toFixed(1)} ` +
+      `${x(pts[0].time).toFixed(1)},${(m.top + ph).toFixed(1)} ` +
       poly +
-      ` ${(m.left + pw).toFixed(1)},${(m.top + ph).toFixed(1)}`;
+      ` ${x(pts[pts.length - 1].time).toFixed(1)},${(m.top + ph).toFixed(1)}`;
+
+    // Optional price overlay on its own right-hand axis (drawn behind equity).
+    let priceLayer = "";
+    let priceLegend = "";
+    if (hasPrice) {
+      const prices = priceAll.map((p) => p.price);
+      let pMin = minOf(prices);
+      let pMax = maxOf(prices);
+      const padP = (pMax - pMin) * 0.08 || Math.abs(pMax) * 0.01 || 1;
+      pMin -= padP;
+      pMax += padP;
+      const py = (p: number) =>
+        m.top + (pMax === pMin ? ph / 2 : (1 - (p - pMin) / (pMax - pMin)) * ph);
+      const ppoly = downsample(priceAll)
+        .map((p) => `${x(p.time).toFixed(1)},${py(p.price).toFixed(1)}`)
+        .join(" ");
+      let pAxis = "";
+      for (let i = 0; i <= 5; i++) {
+        const pv = pMin + ((pMax - pMin) * i) / 5;
+        pAxis +=
+          `<text x="${m.left + pw + 8}" y="${(py(pv) + 4).toFixed(1)}" text-anchor="start" ` +
+          `font-size="11" fill="#d97706">${fmt(pv)}</text>`;
+      }
+      priceLayer =
+        `<polyline points="${ppoly}" fill="none" stroke="#d97706" stroke-width="1.2" ` +
+        `stroke-linejoin="round" opacity="0.6"/>` +
+        pAxis +
+        `<text x="${m.left + pw + 8}" y="${(m.top - 8).toFixed(1)}" text-anchor="start" ` +
+        `font-size="11" font-weight="600" fill="#d97706">price</text>`;
+      // Small legend so the two lines are unambiguous.
+      const lgY = m.top + 14;
+      priceLegend =
+        `<line x1="${m.left + 10}" y1="${lgY}" x2="${m.left + 32}" y2="${lgY}" stroke="${lineColor}" stroke-width="2.5"/>` +
+        `<text x="${m.left + 38}" y="${lgY + 4}" font-size="11.5" fill="#374151">equity</text>` +
+        `<line x1="${m.left + 10}" y1="${lgY + 16}" x2="${m.left + 32}" y2="${lgY + 16}" stroke="#d97706" stroke-width="2.5" opacity="0.8"/>` +
+        `<text x="${m.left + 38}" y="${lgY + 20}" font-size="11.5" fill="#374151">price</text>`;
+    }
 
     const pnl = series.finalBalance - series.startBalance;
     const pnlPct = (pnl / series.startBalance) * 100;
@@ -184,11 +231,14 @@ export class ChartExport {
   <rect width="${W}" height="${H}" fill="#ffffff"/>
   <text x="${m.left}" y="28" font-size="18" font-weight="700" fill="#111827">${title}</text>
   <text x="${m.left}" y="48" font-size="12.5" fill="#6b7280">${subtitle}</text>
+  ${options.note ? `<text x="${m.left}" y="68" font-size="12.5" font-weight="600" fill="#1d4ed8">${esc(options.note)}</text>` : ""}
   <text x="${W - m.right}" y="28" text-anchor="end" font-size="18" font-weight="700" fill="${lineColor}">${stat}</text>
   ${grid}
   ${baseline}
+  ${priceLayer}
   <polygon points="${area}" fill="${lineColor}" fill-opacity="0.08"/>
   <polyline points="${poly}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round"/>
+  ${priceLegend}
   ${xLabels}
 </svg>
 `;
@@ -213,7 +263,7 @@ export class ChartExport {
   ): string {
     const W = options.width ?? 1100;
     const H = options.height ?? 560;
-    const m = { top: 64, right: 168, bottom: 52, left: 80 };
+    const m = { top: options.note ? 88 : 64, right: 168, bottom: 52, left: 80 };
     const pw = W - m.left - m.right;
     const ph = H - m.top - m.bottom;
 
@@ -298,6 +348,7 @@ export class ChartExport {
   <rect width="${W}" height="${H}" fill="#ffffff"/>
   <text x="${m.left}" y="28" font-size="18" font-weight="700" fill="#111827">${esc(options.title ?? "Equity comparison")}</text>
   <text x="${m.left}" y="48" font-size="12.5" fill="#6b7280">${esc(options.subtitle ?? "")}</text>
+  ${options.note ? `<text x="${m.left}" y="68" font-size="12.5" font-weight="600" fill="#1d4ed8">${esc(options.note)}</text>` : ""}
   ${grid}
   ${baseline}
   ${lines}

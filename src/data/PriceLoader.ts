@@ -151,6 +151,27 @@ export class PriceLoader {
     }
   }
 
+  /**
+   * Load and concatenate ticks from several CSVs in order (e.g. a month/day
+   * range), honouring a global tick `limit` across the whole set. Sequential
+   * Binance periods are chronological and non-overlapping, so the concatenation
+   * stays sorted ascending by time without a costly global re-sort.
+   */
+  static loadTicksMany(csvPaths: string[], limit = Infinity): Tick[] {
+    if (csvPaths.length <= 1) {
+      return PriceLoader.loadTicks(csvPaths[0], limit);
+    }
+    const all: Tick[] = [];
+    for (const p of csvPaths) {
+      if (all.length >= limit) break;
+      const remaining = limit === Infinity ? Infinity : limit - all.length;
+      const part = PriceLoader.loadTicks(p, remaining);
+      // Append without spread (stack-safe) or concat (avoids repeated copies).
+      for (let i = 0; i < part.length; i++) all.push(part[i]);
+    }
+    return all;
+  }
+
   /** Build deterministic ticks from a list of prices (for tests). */
   static syntheticTicks(prices: number[], startTime = 0, stepMs = 1000): Tick[] {
     return prices.map((price, i) => ({ time: startTime + i * stepMs, price }));
