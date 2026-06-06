@@ -75,20 +75,27 @@ in Abschnitt 4.
 
 ---
 
-## 2. Vom Forex-EA zum Binance-Futures-Bot — meine Umsetzung 2019–2021
+## 2. Von einem YouTube-Video zum gerichtsfesten Backtester — meine Geschichte 2010–2026
 
-Ich (der Verfasser) habe die Strategie über mehrere Jahre als Bot „Moneyprinter" implementiert. Die
-Git-Historie des Originalprojekts dokumentiert den Weg:
+Ich (der Verfasser) bin **um 2010–2011 mit ca. 18 Jahren** auf diese Strategie gestoßen — durch ein
+YouTube-Video über das „Surefire"-/Zone-Recovery-Hedging
+([youtube.com/watch?v=DJz4E7VyeSw](https://www.youtube.com/watch?v=DJz4E7VyeSw)). Schon damals
+programmierte ich **Expert Advisors (EAs) und Indikatoren für MetaTrader 4/5** und baute die
+Zone-Recovery-Idee zum ersten Mal als MT4-EA nach. Über die Jahre habe ich sie mehrfach neu
+implementiert; die jeweilige Git-Historie dokumentiert den Weg:
 
-| Zeit | Schritt | Belege (Git „moneyprinter") |
+| Zeit | Schritt | Beleg |
 | :--- | :--- | :--- |
-| **2019-06** | Erster Strategy-Tester, CSV-Parser, **Hedge-Order**, `ratio` — Portierung der CAP-EA-Idee aus dem Forex in den Kryptohandel | `init`, `add csv parser`, `add hedge order`, `add ratio`, `add Strategy Tester` |
-| **2020-04** | **Leveraged Trader**, Hedge-Manager, Phemex-/Bybit-Anbindung, Backtester-Frontend | `Add Leveraged`, `hedge manager`, `working hedge trader`, `add backtester frontend` |
-| **Anfang 2021** | **Binance USDⓈ-M-Futures-Anbindung** (`Binance.ts`, `TraderFutures.ts`), Hebel-Setzen, Trailing-Stop, RSI-Filter, Mehr-Coin-Betrieb | `Update Binance.ts`, `TraderFutures.ts`, `leverage`, `add rsi filter`, `more coins` (2021-02) |
+| **~2010–2011** | Erstkontakt über das YouTube-Video (mit ca. 18 J.); **EA-/Indikator-Programmierung für MetaTrader 4/5**, erster Zone-Recovery-EA-Nachbau | [Video](https://www.youtube.com/watch?v=DJz4E7VyeSw) |
+| **2019-06** | Erster Krypto-Strategy-Tester, CSV-Parser, **Hedge-Order**, `ratio` — Portierung der CAP-EA-Idee aus dem Forex in den Kryptohandel | Git „moneyprinter": `init`, `add csv parser`, `add hedge order`, `add ratio` |
+| **2020-04** | **Leveraged Trader**, Hedge-Manager, Phemex-/Bybit-Anbindung, Backtester-Frontend | Git „moneyprinter": `Add Leveraged`, `hedge manager`, `add backtester frontend` |
+| **Anfang 2021** | **Binance USDⓈ-M-Futures-Anbindung** (`Binance.ts`, `TraderFutures.ts`), Hebel, Trailing-Stop, RSI-Filter, Mehr-Coin-Betrieb | Git „moneyprinter": `Update Binance.ts`, `TraderFutures.ts`, `leverage`, `more coins` (2021-02) |
+| **2023–2025** | **Erste Neufassung per „Vibe-Coding"** — Umbau in modernes TypeScript mit Futures-Order-/Notional-Modell und Tests | Git „trade" (`init` 2023-10 … 2025-09) |
+| **2026** | **Diese Version** — gerichtsfester Backtester: validierter Rechenkern, **echte** Binance-Gebühren, **echte** Tickdaten, reale per-Markt-Brackets | dieses Repository (`binance-case-stats`) |
 
-Das Original lief auf **Hebel 75–125×**, `ratio` 4–5, Risiko 16–21 %, `maxSteps` 4–5. Auf dem
-Binance-**Testnet** brachte es einmal **aus $100 in 6 Stunden $10.000** — eindrucksvoll, aber eben auf
-Testnet, **ohne reale Gebühren** und ohne reales Order-Matching.
+Das Original (Moneyprinter, 2021) lief auf **Hebel 75–125×**, `ratio` 4–5, Risiko 16–21 %,
+`maxSteps` 4–5. Auf dem Binance-**Testnet** brachte es einmal **aus $100 in 6 Stunden $10.000** —
+eindrucksvoll, aber eben auf Testnet, **ohne reale Gebühren** und ohne reales Order-Matching.
 
 ### Die bekannte Achillesferse: Martingale-Ruin durch Manipulation
 
